@@ -1,12 +1,13 @@
 <?php
-/* dbsettings.php just overwrites these three variables, forces SSL, and turns off error reporting */
+/* dbsettings.php just overwrites these four variables, forces SSL, and turns off error reporting */
 $dbaddress = 'localhost';
 $dbuser = 'USERNAME';
 $dbpass = 'PASSWORD';
+$dbname = 'dragonquestmonsters';
 require_once('dbsettings.php');
 
 $db = mysqli_connect($dbaddress,$dbuser,$dbpass);
-mysqli_select_db($db,'dragonquestmonsters');
+mysqli_select_db($db,$dbname);
 $dbreturn = '';
 //echo 'Database initialized.<br>';
 
@@ -77,11 +78,111 @@ $ValidMonsterGrowthIndecies = array(); //This is the position of the monster in 
 $error = false;
 $error_message = 'The following errors occurred while generating the new seed:';
 
+
+$FlagSettings = array(
+	'Growth' => array(
+		'default' => 'None',
+		'label' => 'Monster Growth',
+		'options' => array(
+			array('value' => 'Redistribute', 'description' => 'Monster stat growth values will add to the same total, but will be randomly distributed.'),
+			// TODO: Implement shuffle option
+			// array('value' => 'Shuffle', 'description' => 'Monsters will keep the same six growth values, but they will be randomly shuffled.'),
+			array('value' => 'None', 'description' => 'Do not randomize monster stats.'),
+		),
+	),
+
+	'Resistance' => array(
+		'default' => 'None',
+		'label' => 'Monster Resistances',
+		'options' => array(
+			array('value' => 'Redistribute', 'description' => 'Monster stat resistance values will add to the same total, but will be randomly distributed.'),
+			// TODO: Implement shuffle option
+			// array('value' => 'Shuffle', 'description' => 'Monsters will keep the same 27 resistance values, but they will be randomly shuffled.'),
+			array('value' => 'None', 'description' => 'Do not randomize monster resistances.'),
+		),
+	),
+
+	'Skills' => array(
+		'default' => 'None',
+		'label' => 'Shuffle Monster Skills',
+		'options' => array(
+			array('value' => 'Random', 'description' => 'Monsters learn completely random skills.	BeDragon is excluded.'),
+			array('value' => 'None', 'description' => 'Do not randomize monster skills.'),
+		),
+	),
+
+	'Encounters' => array(
+		'default' => 'None',
+		'label' => 'Shuffle Encounters',
+		'options' => array(
+			array('value' => 'Poorly', 'description' => 'Shuffle enemy types.	Monsters\' stats add to the same total, proportional to their growth values.	Later monsters are supposed to start with more skills, but no monsters start with advanced skills.'),
+			array('value' => 'None', 'description' => 'Do not randomize encounters.'),
+		),
+	),
+
+	'GeniusMode' => array(
+		'default' => 'Off',
+		'label' => 'Max Monster Intelligence',
+		'options' => array(
+			array('value' => 'On', 'description' => 'All wild monsters have 999 Int; all monsters have 31 int growth. (Overrides randomized base int/growth)'),
+			array('value' => 'Off', 'description' => 'Do not max out monster intelligence.'),
+		),
+	),
+
+	'EXPScaling' => array(
+		'default' => '100',
+		'label' => 'Experience Yields',
+		'options' => array(
+			array('value' => '0', 'label' => '0%', 'description' => 'Monsters will be worth 0% of their normal EXP yields (minimum 1 EXP)'),
+			array('value' => '50', 'label' => '50%', 'description' => 'Monsters will be worth 50% of their normal EXP yields (minimum 1 EXP)'),
+			array('value' => '100', 'label' => '100%', 'description' => 'Monsters will be worth 100% of their normal EXP yields'),
+			array('value' => '200', 'label' => '200%', 'description' => 'Monsters will be worth 200% of their normal EXP yields'),
+			array('value' => '500', 'label' => '500%', 'description' => 'Monsters will be worth 500% of their normal EXP yields'),
+		),
+	),
+
+	'StatScaling' => array(
+		'default' => '100',
+		'label' => 'Wild Monster Stat Scaling',
+		'options' => array(
+			array('value' => '0', 'label' => '0%', 'description' => 'Wild monster stats will be altered based on this scalar'),
+			array('value' => '50', 'label' => '50%', 'description' => 'Wild monster stats will be altered based on this scalar'),
+			array('value' => '100', 'label' => '100%', 'description' => 'Wild monster stats will be altered based on this scalar'),
+			array('value' => '200', 'label' => '200%', 'description' => 'Wild monster stats will be altered based on this scalar'),
+			array('value' => '500', 'label' => '500%', 'description' => 'Wild monster stats will be altered based on this scalar'),
+		),
+	),
+
+	'BossScaling' => array(
+		'default' => '100',
+		'label' => 'Boss Monster Stat Scaling',
+		'options' => array(
+			array('value' => '0', 'label' => '0%', 'description' => 'Boss stats will be altered based on this scalar'),
+			array('value' => '50', 'label' => '50%', 'description' => 'Boss stats will be altered based on this scalar'),
+			array('value' => '100', 'label' => '100%', 'description' => 'Boss stats will be altered based on this scalar'),
+			array('value' => '200', 'label' => '200%', 'description' => 'Boss stats will be altered based on this scalar'),
+			array('value' => '300', 'label' => '300%', 'description' => 'Boss stats will be altered based on this scalar'),
+			array('value' => '400', 'label' => '400%', 'description' => 'Boss stats will be altered based on this scalar'),
+			array('value' => '500', 'label' => '500%', 'description' => 'Boss stats will be altered based on this scalar'),
+		),
+	),
+
+	'YetiMode' => array(
+		'default' => 'Off',
+		'label' => 'Yeti Mode',
+		'options' => array(
+			array('value' => 'On', 'description' => 'All monsters are yetis!'),
+			array('value' => 'Off', 'description' => 'Not all monsters are yetis.'),
+		),
+	),
+);
+
 $Flags = array();
 
 function DWM2R()
 {
 	global $Flags;
+	global $FlagSettings;
 	global $initial_seed;
 	global $romData;
 	
@@ -91,50 +192,14 @@ function DWM2R()
 	}else{
 		$Flags["StartingMonster"] = 0;
 	}
-	if(array_key_exists("Growth",$_REQUEST)){
-		$Flags["Growth"] = trim($_REQUEST["Growth"]);
-	}else{
-		$Flags["Growth"] = 'None';
-	}
-	if(array_key_exists("Resistance",$_REQUEST)){
-		$Flags["Resistance"] = trim($_REQUEST["Resistance"]);
-	}else{
-		$Flags["Resistance"] = 'None';
-	}
-	if(array_key_exists("Skills",$_REQUEST)){
-		$Flags["Skills"] = trim($_REQUEST["Skills"]);
-	}else{
-		$Flags["Skills"] = 'None';
-	}
-	if(array_key_exists("Encounters",$_REQUEST)){
-		$Flags["Encounters"] = trim($_REQUEST["Encounters"]);
-	}else{
-		$Flags["Encounters"] = 'None';
-	}
-	if(array_key_exists("YetiMode",$_REQUEST)){
-		$Flags["YetiMode"] = trim($_REQUEST["YetiMode"]);
-	}else{
-		$Flags["YetiMode"] = 'Off';
-	}
-	if(array_key_exists("GeniusMode",$_REQUEST)){
-		$Flags["GeniusMode"] = trim($_REQUEST["GeniusMode"]);
-	}else{
-		$Flags["GeniusMode"] = 'Off';
-	}
-	if(array_key_exists("EXPScaling",$_REQUEST)){
-		$Flags["EXPScaling"] = trim($_REQUEST["EXPScaling"]);
-	}else{
-		$Flags["EXPScaling"] = 100;
-	}
-	if(array_key_exists("StatScaling",$_REQUEST)){
-		$Flags["StatScaling"] = trim($_REQUEST["StatScaling"]);
-	}else{
-		$Flags["StatScaling"] = 100;
-	}
-	if(array_key_exists("BossScaling",$_REQUEST)){
-		$Flags["BossScaling"] = trim($_REQUEST["BossScaling"]);
-	}else{
-		$Flags["BossScaling"] = 100;
+	foreach ($FlagSettings as $name => $settings) {
+		if(array_key_exists("default", $settings)) {
+			if(array_key_exists($name,$_REQUEST)) {
+				$Flags[$name] = trim($_REQUEST[$name]);
+			}else{
+				$Flags[$name] = $settings["default"];
+			}
+		}
 	}
 	if(array_key_exists("Seed",$_REQUEST)){
 		$Flags["Seed"] = trim($_REQUEST["Seed"]);
@@ -342,7 +407,7 @@ function RomDump(){
 	fclose($outfile);
 }
 
-function RomTextDump(){		
+function RomTextDump(){
 	/* Code to create a text dump of the input rom. */
 	global $romData;
 	
@@ -863,7 +928,7 @@ function CodePatches(){
 		//We've got 31 characters to work with, including 0xf900 which'll be the player's name
 		//"(Title) ____ and the (Team)" = 12 characters + title/team names (Player name is two characters)
 		//(Note to self:  I gotta make sure the longest title and the shortest team name don't exceed 20 characters)
-		$title = Random() % count($Titles); 
+		$title = Random() % count($Titles);
 		$team = Random() % count($Teams);
 		//Roll team names until we get one that's short enough.
 		while(strlen($Titles[$title]) + strlen($Teams[$team]) + 12 > $Masters[$i][1]){
@@ -892,8 +957,8 @@ function CodePatches(){
 	
 	$romData[0x186C] = chr(0x00); 	//	nop
 	$romData[0x186D] = chr(0xC3); 	//	JP 0x3FAD	Jump to 0x3FAD
-	$romData[0x186E] = chr(0xAD);	//	
-	$romData[0x186F] = chr(0x3F);	//	
+	$romData[0x186E] = chr(0xAD);	//
+	$romData[0x186F] = chr(0x3F);	//
 	
 	//Now, add my own code...
 	$romData[0x3FB1] = chr(0x3E);	//LD a,FCh		Load 0xFC into register a
@@ -904,9 +969,9 @@ function CodePatches(){
 	//$romData[0x3FB5] = chr(0x21);	//
 	$romData[0x3FB4] = chr(0x0E);	//SLA C			(Load the number 8 into register c)
 	$romData[0x3FB5] = chr(0x08);	//
-	$romData[0x3FB6] = chr(0x1A);	//ld a,(de)		
-	$romData[0x3FB7] = chr(0xB1);	//or c			
-	$romData[0x3FB8] = chr(0x12);	//ld (de),a		
+	$romData[0x3FB6] = chr(0x1A);	//ld a,(de)
+	$romData[0x3FB7] = chr(0xB1);	//or c
+	$romData[0x3FB8] = chr(0x12);	//ld (de),a
 	
 	$romData[0x3FB9] = chr(0xC9);	//	RET 		End subroutine (Instruction previously at 0x186F)
 	//TODO: Is it possible to get rid of all of the people in front of the monster breeder?
@@ -1051,6 +1116,23 @@ function LocateBosses(){
 	}
 }
 
+function flagRadioButtons($name, $label, $options) {
+	global $Flags;
+?>
+	<div class="row">
+		<div class="col-sm"><?php echo $label ?></div>
+<?php
+		foreach ($options as $option) {
+			$id = strtolower($name) . '_' . strtolower($option["value"]);
+?>
+			<div class="col-sm"><input type="radio" name="<?php echo $name ?>" value="<?php echo $option["value"] ?>" id="<?php echo $id ?>" <?php echo $Flags[$name] == $option["value"] ? 'checked' : '' ?> /> <label for="<?php echo $id ?>" title="<?php echo $option["description"] ?>"><?php echo $option["label"] ? $option["label"] : $option["value"] ?></label></div>
+<?php
+		}
+?>
+	</div>
+<?php
+}
+
 DWM2R();
 
 ?>
@@ -1095,68 +1177,11 @@ DWM2R();
 			</select>
 		</div>
 	</div>
-	<div class="row">
-		<div class="col-sm">Monster Growth</div>
-		<div class="col-sm"><input type="radio" name="Growth" value="Redistribute" id="growth_redist" <?php echo $Flags['Growth'] == 'Redistribute' ? 'checked' : '' ?> /> <label for="growth_redist" title="Monster stat growth values will add to the same total, but will be randomly distributed.">Redistribute</label></div>
-		<!-- TODO: Implement shuffle option
-		<div class="col-sm"><input type="radio" name="Growth" value="Shuffle" id="growth_shuffle" disabled <?php echo $Flags['Growth'] == 'Shuffle' ? 'checked' : '' ?> /> <label for="growth_shuffle" title="Monsters will keep the same six growth values, but they will be randomly shuffled.">Shuffle</label></div>
-		-->
-		<div class="col-sm"><input type="radio" name="Growth" value="None" id="growth_none" <?php echo $Flags['Growth'] == 'None' ? 'checked' : '' ?> /> <label for="growth_none" title="Do not randomize monster stats.">None</label></div>
-	</div>
-	<div class="row">
-		<div class="col-sm">Monster Resistances</div>
-		<div class="col-sm"><input type="radio" name="Resistance" value="Redistribute" id="resistance_redist" <?php echo $Flags['Resistance'] == 'Redistribute' ? 'checked' : '' ?> /> <label for="resistance_redist" title="Monster stat resistance values will add to the same total, but will be randomly distributed.">Redistribute</label></div>
-		<!-- TODO: Implement shuffle option
-<div class="col-sm"><input type="radio" name="Resistance" value="Shuffle" id="resistance_shuffle" disabled  <?php echo $Flags['Resistance'] == 'Shuffle' ? 'checked' : '' ?> /> <label for="resistance_shuffle" title="Monsters will keep the same 27 resistance values, but they will be randomly shuffled.">Shuffle</label></div>
-		-->
-		<div class="col-sm"><input type="radio" name="Resistance" value="None" id="resistance_none" <?php echo $Flags['Resistance'] == 'None' ? 'checked' : '' ?> /> <label for="resistance_none" title="Do not randomize monster stats.">None</label></div>
-	</div>
-	<div class="row">
-		<div class="col-sm">Shuffle Monster Skills</div>
-		<div class="col-sm"><input type="radio" name="Skills" value="Random" id="skills_random" <?php echo $Flags['Skills'] == 'Random' ? 'checked' : '' ?> /> <label for="skills_random" title="Monsters learn completely random skills.  BeDragon is excluded.">Random</label></div>
-		<div class="col-sm"><input type="radio" name="Skills" value="None" id="skills_none" <?php echo $Flags['Skills'] == 'None' ? 'checked' : '' ?> /> <label for="skills_none" title="Do not randomize monster skills.">None</label></div>
-	</div>
-	<div class="row">
-		<div class="col-sm">Shuffle Encounters</div>
-		<div class="col-sm"><input type="radio" name="Encounters" value="Poorly" id="encounters_random" <?php echo $Flags['Encounters'] == 'Poorly' ? 'checked' : '' ?> /> <label for="encounters_random" title="Shuffle enemy types.  Monsters' stats add to the same total, proportional to their growth values.  Later monsters are supposed to start with more skills, but no monsters start with advanced skills.">Poorly</label></div>
-		<div class="col-sm"><input type="radio" name="Encounters" value="None" id="encounters_none" <?php echo $Flags['Encounters'] == 'None' ? 'checked' : '' ?> /> <label for="encounters_none" title="Do not randomize encounters.">Not at All</label></div>
-	</div>
-	<div class="row">
-		<div class="col-sm">Max Monster Intelligence</div>
-		<div class="col-sm"><input type="radio" name="GeniusMode" value="On" id="geniusmode_on" <?php echo $Flags['GeniusMode'] == 'On' ? 'checked' : '' ?>> <label for="geniusmode_on" title="All wild monsters have 999 Int; all monsters have 31 int growth. (Overrides randomized base int/growth)" />On</label></div>
-		<div class="col-sm"><input type="radio" name="GeniusMode" value="Off" id="geniusmode_off" <?php echo $Flags['GeniusMode'] == 'Off' ? 'checked' : '' ?>> <label for="geniusmode_off" title="Do not max out monster intelligence." />Off</label></div>
-	</div>
-	<div class="row">
-		<div class="col-sm">Experience Yields</div>
-		<div class="col-sm"><input type="radio" name="EXPScaling" value="0"   id="exp_0"   <?php echo $Flags['EXPScaling'] == 0   ? 'checked' : '' ?>> <label for="exp_0"   title="Monsters will be worth 0% of their normal EXP yields (minimum 1 EXP)" />0%</label></div>
-		<div class="col-sm"><input type="radio" name="EXPScaling" value="50"  id="exp_50"  <?php echo $Flags['EXPScaling'] == 50  ? 'checked' : '' ?>> <label for="exp_50"  title="Monsters will be worth 50% of their normal EXP yields (minimum 1 EXP)" />50%</label></div>
-		<div class="col-sm"><input type="radio" name="EXPScaling" value="100" id="exp_100" <?php echo $Flags['EXPScaling'] == 100 ? 'checked' : '' ?>> <label for="exp_100" title="Monsters will be worth 100% of their normal EXP yields" />100%</label></div>
-		<div class="col-sm"><input type="radio" name="EXPScaling" value="200" id="exp_200" <?php echo $Flags['EXPScaling'] == 200 ? 'checked' : '' ?>> <label for="exp_200" title="Monsters will be worth 200% of their normal EXP yields" />200%</label></div>
-		<div class="col-sm"><input type="radio" name="EXPScaling" value="500" id="exp_500" <?php echo $Flags['EXPScaling'] == 500 ? 'checked' : '' ?>> <label for="exp_500" title="Monsters will be worth 500% of their normal EXP yields" />500%</label></div>
-	</div>
-	<div class="row">
-		<div class="col-sm">Wild Monster Stat Scaling</div>
-		<div class="col-sm"><input type="radio" name="StatScaling" value="0"   id="stats_0"   <?php echo $Flags['StatScaling'] == 0   ? 'checked' : '' ?>> <label for="stats_0"   title="Wild monster stats will be altered based on this scalar" />0%</label></div>
-		<div class="col-sm"><input type="radio" name="StatScaling" value="50"  id="stats_50"  <?php echo $Flags['StatScaling'] == 50  ? 'checked' : '' ?>> <label for="stats_50"  title="Wild monster stats will be altered based on this scalar" />50%</label></div>
-		<div class="col-sm"><input type="radio" name="StatScaling" value="100" id="stats_100" <?php echo $Flags['StatScaling'] == 100 ? 'checked' : '' ?>> <label for="stats_100" title="Wild monster stats will be altered based on this scalar" />100%</label></div>
-		<div class="col-sm"><input type="radio" name="StatScaling" value="200" id="stats_200" <?php echo $Flags['StatScaling'] == 200 ? 'checked' : '' ?>> <label for="stats_200" title="Wild monster stats will be altered based on this scalar" />200%</label></div>
-		<div class="col-sm"><input type="radio" name="StatScaling" value="500" id="stats_500" <?php echo $Flags['StatScaling'] == 500 ? 'checked' : '' ?>> <label for="stats_500" title="Wild monster stats will be altered based on this scalar" />500%</label></div>
-	</div>
-	<div class="row">
-		<div class="col-sm"><span title="test">Boss Monster Stat Scaling</span></div>
-		<div class="col-sm"><input type="radio" name="BossScaling" value="0"   id="boss_stats_0"   <?php echo $Flags['BossScaling'] == 0   ? 'checked' : '' ?>> <label for="boss_stats_0"   title="Boss stats will be altered based on this scalar" />0%</label></div>
-		<div class="col-sm"><input type="radio" name="BossScaling" value="50"  id="boss_stats_50"  <?php echo $Flags['BossScaling'] == 50  ? 'checked' : '' ?>> <label for="boss_stats_50"  title="Boss stats will be altered based on this scalar" />50%</label></div>
-		<div class="col-sm"><input type="radio" name="BossScaling" value="100" id="boss_stats_100" <?php echo $Flags['BossScaling'] == 100 ? 'checked' : '' ?>> <label for="boss_stats_100" title="Boss stats will be altered based on this scalar" />100%</label></div>
-		<div class="col-sm"><input type="radio" name="BossScaling" value="200" id="boss_stats_200" <?php echo $Flags['BossScaling'] == 200 ? 'checked' : '' ?>> <label for="boss_stats_200" title="Boss stats will be altered based on this scalar" />200%</label></div>
-		<div class="col-sm"><input type="radio" name="BossScaling" value="300" id="boss_stats_300" <?php echo $Flags['BossScaling'] == 300 ? 'checked' : '' ?>> <label for="boss_stats_300" title="Boss stats will be altered based on this scalar" />300%</label></div>
-		<div class="col-sm"><input type="radio" name="BossScaling" value="400" id="boss_stats_400" <?php echo $Flags['BossScaling'] == 400 ? 'checked' : '' ?>> <label for="boss_stats_400" title="Boss stats will be altered based on this scalar" />400%</label></div>
-		<div class="col-sm"><input type="radio" name="BossScaling" value="500" id="boss_stats_500" <?php echo $Flags['BossScaling'] == 500 ? 'checked' : '' ?>> <label for="boss_stats_500" title="Boss stats will be altered based on this scalar" />500%</label></div>
-	</div>
-	<div class="row">
-		<div class="col-sm">Yeti Mode</div>
-		<div class="col-sm"><input type="radio" name="YetiMode" value="On" id="yeti_on" <?php echo $Flags['YetiMode'] == 'On' ? 'checked' : '' ?>> <label for="yeti_on" title="All monsters are yetis!" />On</label></div>
-		<div class="col-sm"><input type="radio" name="YetiMode" value="Off" id="yeti_off" <?php echo $Flags['YetiMode'] == 'Off' ? 'checked' : '' ?>> <label for="yeti_off" title="Not all monsters are yetis." />Off</label></div>
-	</div>
+<?php
+	foreach ($FlagSettings as $name => $settings) {
+		flagRadioButtons($name, $settings["label"], $settings["options"]);
+	}
+?>
 	<div class="row">
 		<div class="col-sm" style="text-align:center"><input type="Submit" name="Submit" value="Randomize!"></div>
 	</div>
