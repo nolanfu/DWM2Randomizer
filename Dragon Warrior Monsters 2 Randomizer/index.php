@@ -81,6 +81,16 @@ $encounter_count = 614;
 $monster_data_length = 47;
 $first_monster_byte = 0xD4368;
 $monster_count = 313;
+$magicValues = array(
+  'Hoodsquid Encounter' => 26,
+  'ArmyAnt Encounter' => 0xB9, // 185
+  'Madgopher Encounter' => 0x5A, // 90
+
+  'LureDance Move' => 0x7A,
+  'BeDragon Move' => 59,
+
+  'Yeti Monster' => 0x56,
+);
 $error = false;
 $error_message = 'The following errors occurred while generating the new seed:';
 
@@ -510,13 +520,14 @@ function PopulateValidMonsterIDs(){
 	global $Flags;
 	global $ValidMonsterIDs;
 	global $ValidMonsterGrowthIndecies;
+	global $magicValues;
 	
 	//This is the ID stored in the SRAM that determines which monster you have.
 	//It's also used within the table of base-stats for each monster.
 	//NOTE 0x1B is Butch and I don't think he should be used?
 	
 	if($Flags["YetiMode"] == "On"){
-		$ValidMonsterIDs[] = 0x56;
+		$ValidMonsterIDs[] = $magicValues["Yeti Monster"];
 	}
 	else
 	{
@@ -704,6 +715,47 @@ function ShuffleMonsterSkills()
 	return true;
 }
 
+function isBossEncounter($i)
+{
+	//Here's a list of all of the bosses in the speedrun.  I hope.
+	//I don't have stats for all of the arena monsters, and I'm not finding the post-game monsters in the ROM data.
+	//In fact, I'm only finding partial matches for most of THESE monsters... would Gamefaqs lie to me?
+	switch($i){
+		case 385: //Oasis Beavern
+		case 6: //Oasis CurseLamp
+		case 130: //K-1 Babble
+		case 131: //K-1 PearlGel
+		case 132: //K-2 SpikyBoy
+		case 133: //K-2 Pixy
+		case 134: //K-2 Dracky
+		case 135: //K-3 MadRaven
+		case 136: //K-3 Kitehawk
+		case 135: //K-3 MadRaven
+		case 25: //Pirate Hoodsquid
+		case 398: //Pirate Boneslave
+		case 27: //Pirate CaptDead
+		case 399: //Pirate KingSquid
+		case 49: //Ice Bombcrag
+		case 408: //Ice AgDevil
+		case 409: //Ice Puppetor
+		case 67: //Ice Goathorn
+		case 410: //Ice ArcDemon
+		case 411: //Ice Goathorn 2
+		case 426: //Sky MadCondor
+		case 108: //Sky Skeletor
+		case 99: //Sky Niterich
+		case 421: //Sky Metabble
+		case 107: //Sky EvilArmor
+		case 106: //Sky Mudou
+		case 115: //Limbo GigaDraco
+		case 114: //Limbo Centasaur
+		case 116: //Limbo Garudian
+		case 376: //Limbo Darck
+			return 1;
+	}
+  return 0;
+}
+
 function ShuffleEncounters()
 {
 	global $Flags;
@@ -712,6 +764,7 @@ function ShuffleEncounters()
 	global $ValidMonsterIDs;
 	global $ValidMonsterGrowthIndecies;
 	global $encounter_count;
+	global $magicValues;
 	
 	//Code patch: Reduce level of SpikyBoys in Oasis to 1 so that they level faster
 	$romData[0xD00CC] = chr(0x01);
@@ -723,7 +776,7 @@ function ShuffleEncounters()
 			//Allow the starting monster to be selectable
 			$monsterid = $Flags["StartingMonster"];
 		}
-		elseif($i == 26){
+		elseif($i == $magicValues["Hoodsquid Encounter"]){
 			//Special case: The hoodsquid needs to be a water-type. (0x13C - 0x15B, 32 monsters)
 			//TODO: Yeti Mode won't put a yeti here ):
 			$monsterid = Random() % 32 + 0x13C;
@@ -738,50 +791,12 @@ function ShuffleEncounters()
 			
 			//Need to ensure Army Ant/Madgopher are obtainable before Ice, so let's not randomize them.
 			//      I like the idea of replacing them with any monster in the Pirate overworld (all zones), but I think that requires me to manually track down all of the addresses of the overworld enemies.
-			//		Madgopher is 90 (0x5A)
-			//		Army Ant is 185 (0xB9)
 			//		Note that each monster only shows up once.
-			if(getEncounterWord($i, 0) != 0x5A && getEncounterWord($i, 0) != 0xB9){
+			if(getEncounterWord($i, 0) != $magicValues["Madgopher Encounter"] && getEncounterWord($i, 0) != $magicValues["ArmyAnt Encounter"]){
 				setEncounterWord($i, 0, $monsterid);
 			}
 			
-			$is_boss_I_think = 0;
-			//Here's a list of all of the bosses in the speedrun.  I hope.
-			//I don't have stats for all of the arena monsters, and I'm not finding the post-game monsters in the ROM data.
-			//In fact, I'm only finding partial matches for most of THESE monsters... would Gamefaqs lie to me?
-			switch($i){
-				case 385: //Oasis Beavern
-				case 6: //Oasis CurseLamp
-				case 130: //K-1 Babble
-				case 131: //K-1 PearlGel
-				case 132: //K-2 SpikyBoy
-				case 133: //K-2 Pixy
-				case 134: //K-2 Dracky
-				case 135: //K-3 MadRaven
-				case 136: //K-3 Kitehawk
-				case 135: //K-3 MadRaven
-				case 25: //Pirate Hoodsquid
-				case 398: //Pirate Boneslave
-				case 27: //Pirate CaptDead
-				case 399: //Pirate KingSquid
-				case 49: //Ice Bombcrag
-				case 408: //Ice AgDevil
-				case 409: //Ice Puppetor
-				case 67: //Ice Goathorn
-				case 410: //Ice ArcDemon
-				case 411: //Ice Goathorn 2
-				case 426: //Sky MadCondor
-				case 108: //Sky Skeletor
-				case 99: //Sky Niterich
-				case 421: //Sky Metabble
-				case 107: //Sky EvilArmor
-				case 106: //Sky Mudou
-				case 115: //Limbo GigaDraco
-				case 114: //Limbo Centasaur
-				case 116: //Limbo Garudian
-				case 376: //Limbo Darck
-					$is_boss_I_think = 1;
-			}
+			$is_boss_I_think = isBossEncounter($i);
 			
 			//Add up the monster's GROWTH values
 			$total_growth_stats = 0;
@@ -919,8 +934,8 @@ function ShuffleEncounters()
 			setEncounterByte($i, 2 + $j, $return_skill);
 		}
 		//Hoodsquid should always know LureDance as its fourth move
-		if($i == 26){
-			setEncounterByte($i, 4, 0x7A);
+		if($i == $magicValues["Hoodsquid Encounter"]){
+			setEncounterByte($i, 4, $magicValues["LureDance Move"]);
 		}
 		
 		//Swap empty moves to the back.  Just gonna "brute force" a bubble sort; could be more efficient but it's nine swaps max so whatever.
