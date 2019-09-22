@@ -129,9 +129,9 @@ $FlagSettings = array(
 		'default' => 'None',
 		'label' => 'Shuffle Monster Skills',
 		'options' => array(
-			array('value' => 'Random', 'description' => 'Monsters learn completely random skills.	BeDragon is excluded.'),
-			array('value' => 'Random With BeDragon', 'label' => 'Random With BeDragon <b>(!)</b>', 'description' => 'Monsters learn completely random skills, including BeDragon.	Boo!'),
-			array('value' => 'Random, No Healing', 'label' => 'Random, No Healing <b>(!)</b>', 'description' => 'Monsters learn completely random skills.	BeDragon and all skills with healing capabilities are excluded.'),
+			array('value' => 'Random', 'description' => 'Monsters learn completely random skills. BeDragon is excluded.'),
+			array('value' => 'Random With BeDragon', 'label' => 'Random With BeDragon <b>(!)</b>', 'description' => 'Monsters learn completely random skills, including BeDragon. Boo!'),
+			array('value' => 'Random, No Healing', 'label' => 'Random, No Healing <b>(!)</b>', 'description' => 'Monsters learn completely random skills. BeDragon and all skills with healing capabilities are excluded.'),
 			array('value' => 'None', 'description' => 'Do not randomize monster skills.'),
 		),
 	),
@@ -140,7 +140,7 @@ $FlagSettings = array(
 		'default' => 'None',
 		'label' => 'Shuffle Encounters',
 		'options' => array(
-			array('value' => 'Poorly', 'description' => 'Shuffle enemy types.	Monsters\' stats add to the same total, proportional to their growth values.	Later monsters are supposed to start with more skills, but no monsters start with advanced skills.'),
+			array('value' => 'Poorly', 'description' => 'Shuffle enemy types. Monsters\' stats add to the same total, proportional to their growth values. Later monsters are supposed to start with more skills, but no monsters start with advanced skills.'),
 			array('value' => 'None', 'description' => 'Do not randomize encounters.'),
 		),
 	),
