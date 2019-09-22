@@ -75,6 +75,12 @@ function Random($MultiRandom = true){ //Defaulting MultiRandom to true for this 
 $romData;
 $ValidMonsterIDs = array(); //This is the actual ID number of the monster
 $ValidMonsterGrowthIndecies = array(); //This is the position of the monster in the "growths" list
+$encounter_data_length = 26;
+$first_encounter_byte = 0xD008F;
+$encounter_count = 614;
+$monster_data_length = 47;
+$first_monster_byte = 0xD4368;
+$monster_count = 313;
 $error = false;
 $error_message = 'The following errors occurred while generating the new seed:';
 
@@ -349,6 +355,63 @@ function swap($firstAddress, $secondAddress)
 	$romData[$firstAddress] = $holdAddress;
 }
 
+function getMonsterByte($i, $offset)
+{
+	global $romData;
+	global $first_monster_byte;
+	global $monster_data_length;
+	return ord($romData[$first_monster_byte + $i * $monster_data_length + $offset]);
+}
+
+function setMonsterByte($i, $offset, $value)
+{
+	global $romData;
+	global $first_monster_byte;
+	global $monster_data_length;
+	$romData[$first_monster_byte + $i * $monster_data_length + $offset] = chr(floor($value % 256));
+}
+
+function getEncounterByte($i, $offset)
+{
+	global $romData;
+	global $first_encounter_byte;
+	global $encounter_data_length;
+	return ord($romData[$first_encounter_byte + $i * $encounter_data_length + $offset]);
+}
+
+function getEncounterWord($i, $offset)
+{
+	global $romData;
+	global $first_encounter_byte;
+	global $encounter_data_length;
+	return ord($romData[$first_encounter_byte + $i * $encounter_data_length + $offset]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + $offset + 1])*256;
+}
+
+function setEncounterByte($i, $offset, $value)
+{
+	global $romData;
+	global $first_encounter_byte;
+	global $encounter_data_length;
+	$romData[$first_encounter_byte + $i * $encounter_data_length + $offset] = chr(floor($value % 256));
+}
+
+function setEncounterWord($i, $offset, $value)
+{
+	global $romData;
+	global $first_encounter_byte;
+	global $encounter_data_length;
+	$romData[$first_encounter_byte + $i * $encounter_data_length + $offset] = chr(floor($value % 256));
+	$romData[$first_encounter_byte + $i * $encounter_data_length + $offset + 1] = chr(floor($value / 256));
+}
+
+function swapEncounterBytes($i, $offset_a, $offset_b)
+{
+	global $romData;
+	global $first_encounter_byte;
+	global $encounter_data_length;
+	swap($first_encounter_byte + $i * $encounter_data_length + $offset_a, $first_encounter_byte + $i * $encounter_data_length + $offset_b);
+}
+
 
 function WriteText($address, $text)
 {
@@ -507,9 +570,7 @@ function ShuffleMonsterGrowth()
 	global $Flags;
 	
 	global $romData;
-	$monster_data_length = 47;
-	$first_monster_byte = 0xD4368;
-	$monster_count = 313;
+	global $monster_count;
 
 	for ($i = 0; $i < $monster_count; $i++)
 	{
@@ -520,15 +581,15 @@ function ShuffleMonsterGrowth()
 			for ($j = 0; $j < 6; $j++)
 			{
 				//We're going to set a minimum growth value at 1 because growth of 0 SUCKS
-				$total_stats += ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $j]) - 1;
-				$romData[$first_monster_byte + $i * $monster_data_length + 14 + $j] = chr(1);
+				$total_stats += getMonsterByte($i, 14 + $j) - 1;
+				setMonsterByte($i, 14 + $j, 1);
 			}
 
 			//Start by assigning 30 points: 20 to one stat and 10 to another (Or the same?)
 			$slot1 = Random() % 6; //Named slot1 because C# is throwing a fit if I re-use the same var name in the loop below...
-			$romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot1] = chr(ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot1]) + 20);
+			setMonsterByte($i, 14 + $slot1, getMonsterByte($i, 14 + $slot1) + 20);
 			$slot1 = Random() % 6;
-			$romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot1] = chr(ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot1]) + 10);
+			setMonsterByte($i, 14 + $slot1, getMonsterByte($i, 14 + $slot1) + 10);
 			$total_stats -= 30;
 
 			if($total_stats > 31*6) $total_stats = 31*6;
@@ -538,15 +599,15 @@ function ShuffleMonsterGrowth()
 				$safety = 0;
 				//Do not let the stat go over 31
 				//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
-				while(ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot]) >= 31){
+				while(getMonsterByte($i, 14 + $slot) >= 31){
 					$slot = ($slot + 1) % 6;
 					$safety++;
 					if($safety >= 6) break;
 				}
 				if($safety >= 6) break;
-				if (ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot]) < 31)
+				if (getMonsterByte($i, 14 + $slot) < 31)
 				{
-					$romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot] = chr(ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot]) + 1);
+					setMonsterByte($i, 14 + $slot, getMonsterByte($i, 14 + $slot) + 1);
 					$total_stats--;
 				}
 			}
@@ -554,7 +615,7 @@ function ShuffleMonsterGrowth()
 		
 		//If we're in Genius Mode, all monsters get 31 int growth
 		if($Flags["GeniusMode"] == "Yes"){
-			$romData[$first_monster_byte + $i * $monster_data_length + 14 + 5] = chr(31);
+			setMonsterByte($i, 14 + 5, 31);
 		}
 
 	}
@@ -569,9 +630,7 @@ function ShuffleMonsterResistances()
 	global $Flags;
 	
 	global $romData;
-	$monster_data_length = 47;
-	$first_monster_byte = 0xD4368;
-	$monster_count = 313;
+	global $monster_count;
 	
 	for ($i = 0; $i < $monster_count; $i++)
 	{
@@ -579,8 +638,8 @@ function ShuffleMonsterResistances()
 		$total_resistances = 0;
 		for ($j = 0; $j < 27; $j++)
 		{
-			$total_resistances += ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $j]);
-			$romData[$first_monster_byte + $i * $monster_data_length + 20 + $j] = chr(0);
+			$total_resistances += getMonsterByte($i, 20 + $j);
+			setMonsterByte($i, 20 + $j, 0);
 		}
 		if($total_resistances > 27*3) $total_resistances = 27*3;
 		while ($total_resistances > 0)
@@ -589,16 +648,16 @@ function ShuffleMonsterResistances()
 			//2019 03 11 - ealm - Initialize this variable idiot
 			$safety = 0;
 			//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
-			while(ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot]) >= 3){
+			while(getMonsterByte($i, 20 + $slot) >= 3){
 				$slot = ($slot + 1) % 27;
 				$safety++;
 				if($safety >= 27) break;
 			}
 			if($safety >= 27) break;
 			//Do not let the stat go over 3
-			if (ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot]) < 3)
+			if (getMonsterByte($i, 20 + $slot) < 3)
 			{
-				$romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot] = chr(ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot]) + 1);
+				setMonsterByte($i, 20 + $slot, getMonsterByte($i, 20 + $slot) + 1);
 				$total_resistances--;
 			}
 		}
@@ -613,9 +672,7 @@ function ShuffleMonsterSkills()
 	global $Flags;
 	
 	global $romData;
-	$monster_data_length = 47;
-	$first_monster_byte = 0xD4368;
-	$monster_count = 313;
+	global $monster_count;
 	//2018 03 01 -- ealm -- Removing BeDragon (59) because screwwwwwwwwwww thaaaaaaaaaaaaaaaaaat spellllllllllllllllllll.
 	$tier_one_skills = array( 1, 4, 7, 10, 13, 16, 19, 21, 22, 25, 27, 30, 32, 33, 34, 35, 36, 37, 39, 41, 43, 45, 46, 47, 49, 51, 52, 53, 54, 56, 57, 58, 60, 61, 62, 63, 64, 68, 72, 74, 75, 76, 78, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 137, 138, 139, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 153, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169 );
 
@@ -633,15 +690,13 @@ function ShuffleMonsterSkills()
 		{
 			$skill3 = Random() % count($tier_one_skills);
 		}
-		$romData[$first_monster_byte + $i * $monster_data_length + 10] = chr($tier_one_skills[$skill1]);
-		$romData[$first_monster_byte + $i * $monster_data_length + 11] = chr($tier_one_skills[$skill2]);
-		$romData[$first_monster_byte + $i * $monster_data_length + 12] = chr($tier_one_skills[$skill3]);
+		setMonsterByte($i, 10, $tier_one_skills[$skill1]);
+		setMonsterByte($i, 11, $tier_one_skills[$skill2]);
+		setMonsterByte($i, 12, $tier_one_skills[$skill3]);
 	}
 
 	return true;
 }
-
-
 
 function ShuffleEncounters()
 {
@@ -650,12 +705,7 @@ function ShuffleEncounters()
 	global $romData;
 	global $ValidMonsterIDs;
 	global $ValidMonsterGrowthIndecies;
-	
-	$encounter_data_length = 26;
-	$first_encounter_byte = 0xD008F;
-	$encounter_count = 614;
-	$monster_data_length = 47;
-	$first_monster_byte = 0xD4368;
+	global $encounter_count;
 	
 	//Code patch: Reduce level of SpikyBoys in Oasis to 1 so that they level faster
 	$romData[0xD00CC] = chr(0x01);
@@ -685,10 +735,8 @@ function ShuffleEncounters()
 			//		Madgopher is 90 (0x5A)
 			//		Army Ant is 185 (0xB9)
 			//		Note that each monster only shows up once.
-			if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 0]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 1])*256 != 0x5A &&
-			   ord($romData[$first_encounter_byte + $i * $encounter_data_length + 0]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 1])*256 != 0xB9){
-				$romData[$first_encounter_byte + $i * $encounter_data_length + 0] = chr($monsterid % 256);
-				$romData[$first_encounter_byte + $i * $encounter_data_length + 1] = chr(floor($monsterid / 256));
+			if(getEncounterWord($i, 0) != 0x5A && getEncounterWord($i, 0) != 0xB9){
+				setEncounterWord($i, 0, $monsterid);
 			}
 			
 			$is_boss_I_think = 0;
@@ -734,7 +782,7 @@ function ShuffleEncounters()
 			for ($j = 0; $j < 6; $j++)
 			{
 				if($j == 0 && $is_boss_I_think) continue;
-				$total_growth_stats += ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 14 + $j]);
+				$total_growth_stats += getMonsterByte($MonsterGrowthIndex, 14 + $j);
 			}
 			
 			//Add up the monster's BASE STATS
@@ -742,8 +790,7 @@ function ShuffleEncounters()
 			for ($j = 0; $j < 6; $j++)
 			{
 				if($j == 0 && $is_boss_I_think) continue;
-				$total_stats += ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2]);
-				$total_stats += ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1]) * 256;
+				$total_stats += getEncounterWord($i, 10 + $j * 2);
 			}
 			//Double the base stats for our starting monster, because Slash is a little weak at level one.
 			if($j == 0) $total_stats *= 2;
@@ -757,19 +804,17 @@ function ShuffleEncounters()
 					//continue;
 					//We're handling boss HP differently.  Basically, we're not changing it.  However...
 					//2018 06 25 - ealm - Adding base stat scaling flags
-					$new_stat = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2]);
-					$new_stat = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1]) * 256;
+					$new_stat = getEncounterWord($i, 10 + $j * 2);
 					
 					//I actually don't want HP to scale the same as other stats.  Let's "soften" the effect of the scalar if it's over 100%.
 					$scalar = $Flags["BossScaling"]/100;
 					//Turns 500/400/300/200 into 300/250/200/150.
 					if($scalar > 1) $scalar = ($scalar - 1) / 2 + 1;
 										
-					$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2] = chr($new_stat % 256);
-					$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1] = chr($new_stat / 256);
+					setEncounterWord($i, 10 + $j * 2, $new_stat);
 				}else{
 					//2018 06 25 - ealm - Renaming this variable for clarity.  This is the growth value for this stat.
-					$stat_growth = ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 14 + $j]);
+					$stat_growth = getMonsterByte($MonsterGrowthIndex, 14 + $j);
 					//Divide by total growth stats to get this stat's "share" ratio, multiply by total base stats
 					$new_stat = floor($stat_growth * $total_stats / $total_growth_stats);
 					
@@ -791,61 +836,53 @@ function ShuffleEncounters()
 					//2018 06 25 - ealm - Why wasn't this already in here?  Please cap stats (except boss HP, handled above) at 999...
 					if($new_stat > 999) $new_stat = 999;
 					
-					$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2] = chr($new_stat % 256);
-					$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1] = chr($new_stat / 256);
+					setEncounterWord($i, 10 + $j * 2, $new_stat);
 				}
 			}
 		}
 		//Ramp up early EXP gains with the following statements.
-		if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 7]) * 256 < 20)
+		$exp = getEncounterWord($i, 6);
+		if($exp < 20)
 		{
-			$romData[$first_encounter_byte + $i * $encounter_data_length + 6] = chr(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) * 2.5);
+			setEncounterWord($i, 6, $exp*2.5);
 		}
-		elseif(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 7]) * 256 < 40)
+		elseif($exp < 40)
 		{
-			$romData[$first_encounter_byte + $i * $encounter_data_length + 6] = chr(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) * 2);
+			setEncounterWord($i, 6, $exp*2);
 		}
-		elseif(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 7]) * 256 < 100)
+		elseif($exp < 100)
 		{
-			$romData[$first_encounter_byte + $i * $encounter_data_length + 6] = chr(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) * 1.5);
+			setEncounterWord($i, 6, $exp*1.5);
 		}
 		//2018 25 2018 - ealm - Adding global EXP scalar (TODO: Test this lol)
 		$global_exp_scalar = $Flags["EXPScaling"]/100;
-		$total_exp = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 7])*256;
-		$total_exp *= $global_exp_scalar;
-		
-		$romData[$first_encounter_byte + $i * $encounter_data_length + 6] = chr($total_exp % 256);
-		$romData[$first_encounter_byte + $i * $encounter_data_length + 7] = chr($total_exp / 256);
+		setEncounterWord($i, 6, getEncounterWord($i, 6) * $global_exp_scalar);
 		
 		
 		//If we're in Genius Mode, all wild monsters get 999 int
 		if($Flags["GeniusMode"] == "On"){
-			$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2] = chr(999 % 256);
-			$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2 + 1] = chr(999 / 256);
+			setEncounterWord($i, 10 + 5*2, 999);
 		}
 		
-		
-		
-		
 		//Now, let's teach random encounters their skills.  We'll give them the three they're supposed to learn, plus a bonus skill, and let it level up appropriately.
-		$lv  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 9]);
-		$hp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2 + 1]);
-		$mp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2 + 1]);
-		$atk = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2 + 1]);
-		$def = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2 + 1]);
-		$agl = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2 + 1]);
-		$int = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2 + 1]);
+		$lv  = getEncounterByte($i, 9);
+		$hp  = getEncounterWord($i, 10);
+		$mp  = getEncounterWord($i, 12);
+		$atk = getEncounterWord($i, 14);
+		$def = getEncounterWord($i, 16);
+		$agl = getEncounterWord($i, 18);
+		$int = getEncounterWord($i, 20);
 		
 		for($j = 0; $j < 4; $j++){
 			//Loop through all three skills the monster should learn, plus a BONUS SKILL
 			if($j <> 3){
-				$skill = ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 10 + $j]);
+				$skill = getMonsterByte($MonsterGrowthIndex, 10 + $j);
 			}else{
 				$skill = Random() % 169 + 1;
 				//Re-roll until this isn't the same skill as the three it innately learns.
-				while($skill == $romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 10 + 0] ||
-					  $skill == $romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 10 + 1] ||
-					  $skill == $romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 10 + 2])
+				while($skill == getMonsterByte($MonsterGrowthIndex, 10) ||
+					  $skill == getMonsterByte($MonsterGrowthIndex, 11) ||
+					  $skill == getMonsterByte($MonsterGrowthIndex, 12))
 					  {
 					$skill = Random() % 169 + 1;
 				}
@@ -873,23 +910,19 @@ function ShuffleEncounters()
 					break;
 				}
 			}
-			$romData[$first_encounter_byte + $i * $encounter_data_length + 2 + $j] = chr($return_skill);
+			setEncounterByte($i, 2 + $j, $return_skill);
 		}
 		//Hoodsquid should always know LureDance as its fourth move
 		if($i == 26){
-			$romData[$first_encounter_byte + $i * $encounter_data_length + 4] = chr(0x7A);
+			setEncounterByte($i, 4, 0x7A);
 		}
 		
 		//Swap empty moves to the back.  Just gonna "brute force" a bubble sort; could be more efficient but it's nine swaps max so whatever.
-		for($j = 0; $j < 3; $j++){
-			if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 2]) == 0xFF){
-				swap($first_encounter_byte + $i * $encounter_data_length + 2,$first_encounter_byte + $i * $encounter_data_length + 3);
-			}
-			if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 3]) == 0xFF){
-				swap($first_encounter_byte + $i * $encounter_data_length + 3,$first_encounter_byte + $i * $encounter_data_length + 4);
-			}
-			if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 4]) == 0xFF){
-				swap($first_encounter_byte + $i * $encounter_data_length + 4,$first_encounter_byte + $i * $encounter_data_length + 5);
+		for($swapCounter = 0; $swapCounter < 3; $swapCounter++) {
+			for($j = 2; $j <= 4; $j++){
+				if(getEncounterByte($i, $j) == 0xFF){
+					swapEncounterBytes($i, $j, $j + 1);
+				}
 			}
 		}
 		//END ENCOUNTER SKILLS
@@ -983,12 +1016,8 @@ function LocateBosses(){
 	//boss stats source: https://gamefaqs.gamespot.com/gbc/525414-dragon-warrior-monsters-2-cobis-journey/faqs/14383
 	
 	global $romData;
-	
-	$encounter_data_length = 26;
-	$first_encounter_byte = 0xD008F;
-	$encounter_count = 614;
-	$monster_data_length = 47;
-	$first_monster_byte = 0xD4368;
+	global $encounter_count;
+
 	//Really shoulda put this in the database...
 	$boss_stats = array(
 		array("Oasis Beavern",5,98,16,20,8,36,120),
@@ -1087,14 +1116,13 @@ function LocateBosses(){
 	foreach($boss_stats as $boss){
 		$foundit = 0;
 		for ($i = 0; $i < $encounter_count; $i++){
-			//Now, let's teach random encounters their skills.  We'll give them the three they're supposed to learn, plus a bonus skill, and let it level up appropriately.
-			$lv  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 9]);
-			$hp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2 + 1]);
-			$mp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2 + 1]);
-			$atk = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2 + 1]);
-			$def = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2 + 1]);
-			$agl = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2 + 1]);
-			$int = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2 + 1]);
+			$lv  = getEncounterByte($i, 9);
+			$hp  = getEncounterWord($i, 10);
+			$mp  = getEncounterWord($i, 12);
+			$atk = getEncounterWord($i, 14);
+			$def = getEncounterWord($i, 16);
+			$agl = getEncounterWord($i, 18);
+			$int = getEncounterWord($i, 20);
 			
 			$pts = 0;
 			if($boss[1] == $lv ) $pts++;
