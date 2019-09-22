@@ -634,31 +634,34 @@ function ShuffleMonsterResistances()
 	
 	for ($i = 0; $i < $monster_count; $i++)
 	{
-		//Repeat for resistances.  There are 27 of these...
-		$total_resistances = 0;
-		for ($j = 0; $j < 27; $j++)
+		if ($Flags["Resistance"] == "Redistribute")
 		{
-			$total_resistances += getMonsterByte($i, 20 + $j);
-			setMonsterByte($i, 20 + $j, 0);
-		}
-		if($total_resistances > 27*3) $total_resistances = 27*3;
-		while ($total_resistances > 0)
-		{
-			$slot = Random() % 27;
-			//2019 03 11 - ealm - Initialize this variable idiot
-			$safety = 0;
-			//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
-			while(getMonsterByte($i, 20 + $slot) >= 3){
-				$slot = ($slot + 1) % 27;
-				$safety++;
-				if($safety >= 27) break;
-			}
-			if($safety >= 27) break;
-			//Do not let the stat go over 3
-			if (getMonsterByte($i, 20 + $slot) < 3)
+			//Repeat for resistances.  There are 27 of these...
+			$total_resistances = 0;
+			for ($j = 0; $j < 27; $j++)
 			{
-				setMonsterByte($i, 20 + $slot, getMonsterByte($i, 20 + $slot) + 1);
-				$total_resistances--;
+				$total_resistances += getMonsterByte($i, 20 + $j);
+				setMonsterByte($i, 20 + $j, 0);
+			}
+			if($total_resistances > 27*3) $total_resistances = 27*3;
+			while ($total_resistances > 0)
+			{
+				$slot = Random() % 27;
+				//2019 03 11 - ealm - Initialize this variable idiot
+				$safety = 0;
+				//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
+				while(getMonsterByte($i, 20 + $slot) >= 3){
+					$slot = ($slot + 1) % 27;
+					$safety++;
+					if($safety >= 27) break;
+				}
+				if($safety >= 27) break;
+				//Do not let the stat go over 3
+				if (getMonsterByte($i, 20 + $slot) < 3)
+				{
+					setMonsterByte($i, 20 + $slot, getMonsterByte($i, 20 + $slot) + 1);
+					$total_resistances--;
+				}
 			}
 		}
 	}
@@ -678,21 +681,24 @@ function ShuffleMonsterSkills()
 
 	for ($i = 0; $i < $monster_count; $i++)
 	{
-		//Randomize skills!  Pick three of these.
-		$skill1 = Random() % count($tier_one_skills);
-		$skill2 = Random() % count($tier_one_skills);
-		while ($skill2 == $skill1)
+		if ($Flags["Skills"] == "Random")
 		{
+			//Randomize skills!  Pick three of these.
+			$skill1 = Random() % count($tier_one_skills);
 			$skill2 = Random() % count($tier_one_skills);
-		}
-		$skill3 = Random() % count($tier_one_skills);
-		while ($skill3 == $skill1 || $skill3 == $skill2)
-		{
+			while ($skill2 == $skill1)
+			{
+				$skill2 = Random() % count($tier_one_skills);
+			}
 			$skill3 = Random() % count($tier_one_skills);
+			while ($skill3 == $skill1 || $skill3 == $skill2)
+			{
+				$skill3 = Random() % count($tier_one_skills);
+			}
+			setMonsterByte($i, 10, $tier_one_skills[$skill1]);
+			setMonsterByte($i, 11, $tier_one_skills[$skill2]);
+			setMonsterByte($i, 12, $tier_one_skills[$skill3]);
 		}
-		setMonsterByte($i, 10, $tier_one_skills[$skill1]);
-		setMonsterByte($i, 11, $tier_one_skills[$skill2]);
-		setMonsterByte($i, 12, $tier_one_skills[$skill3]);
 	}
 
 	return true;
