@@ -82,14 +82,21 @@ $monster_data_length = 47;
 $first_monster_byte = 0xD4368;
 $monster_count = 313;
 $magicValues = array(
-  'Hoodsquid Encounter' => 26,
-  'ArmyAnt Encounter' => 0xB9, // 185
-  'Madgopher Encounter' => 0x5A, // 90
+	'Hoodsquid Encounter' => 26,
+	'ArmyAnt Encounter' => 0xB9, // 185
+	'Madgopher Encounter' => 0x5A, // 90
 
-  'LureDance Move' => 0x7A,
-  'BeDragon Move' => 59,
+	'LureDance Skill' => 0x7A,
+	'BeDragon Skill' => 59,
+	'Healing Skills' => array(
+		22,23,24,25,26, // Healing spells
+		30,31,32, // Vivify/Revive/Farewell
+		123,124, // LifeDance/Hustle
+		133, // TatsuCall (Tatsu can cast HealMore)
+		160,161, // LifeSong/LoveRain
+	),
 
-  'Yeti Monster' => 0x56,
+	'Yeti Monster' => 0x56,
 );
 $error = false;
 $error_message = 'The following errors occurred while generating the new seed:';
@@ -123,6 +130,8 @@ $FlagSettings = array(
 		'label' => 'Shuffle Monster Skills',
 		'options' => array(
 			array('value' => 'Random', 'description' => 'Monsters learn completely random skills.	BeDragon is excluded.'),
+			array('value' => 'Random With BeDragon', 'label' => 'Random With BeDragon <b>(!)</b>', 'description' => 'Monsters learn completely random skills, including BeDragon.	Boo!'),
+			array('value' => 'Random, No Healing', 'label' => 'Random, No Healing <b>(!)</b>', 'description' => 'Monsters learn completely random skills.	BeDragon and all skills with healing capabilities are excluded.'),
 			array('value' => 'None', 'description' => 'Do not randomize monster skills.'),
 		),
 	),
@@ -684,15 +693,32 @@ function ShuffleMonsterResistances()
 function ShuffleMonsterSkills()
 {
 	global $Flags;
-	
 	global $romData;
 	global $monster_count;
-	//2018 03 01 -- ealm -- Removing BeDragon (59) because screwwwwwwwwwww thaaaaaaaaaaaaaaaaaat spellllllllllllllllllll.
+	global $magicValues;
+
 	$tier_one_skills = array( 1, 4, 7, 10, 13, 16, 19, 21, 22, 25, 27, 30, 32, 33, 34, 35, 36, 37, 39, 41, 43, 45, 46, 47, 49, 51, 52, 53, 54, 56, 57, 58, 60, 61, 62, 63, 64, 68, 72, 74, 75, 76, 78, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 137, 138, 139, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 153, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169 );
 
+	// Remove BeDragon unless we've specifically asked to keep it.
+	if ($Flags["Skills"] != "Random With BeDragon") {
+		$index = array_search($magicValues["BeDragon Skill"], $tier_one_skills);
+		if ($index !== false) {
+			unset($tier_one_skills[$index]);
+		}
+	}
+
+	if ($Flags["Skills"] == "Random, No Healing") {
+		foreach ($magicValues["Healing Skills"] as $skillId) {
+			$index = array_search($skillId, $tier_one_skills);
+			if ($index !== false) {
+				unset($tier_one_skills[$index]);
+			}
+		}
+	}
+  
 	for ($i = 0; $i < $monster_count; $i++)
 	{
-		if ($Flags["Skills"] == "Random")
+		if ($Flags["Skills"] != "None")
 		{
 			//Randomize skills!  Pick three of these.
 			$skill1 = Random() % count($tier_one_skills);
@@ -935,7 +961,7 @@ function ShuffleEncounters()
 		}
 		//Hoodsquid should always know LureDance as its fourth move
 		if($i == $magicValues["Hoodsquid Encounter"]){
-			setEncounterByte($i, 4, $magicValues["LureDance Move"]);
+			setEncounterByte($i, 4, $magicValues["LureDance Skill"]);
 		}
 		
 		//Swap empty moves to the back.  Just gonna "brute force" a bubble sort; could be more efficient but it's nine swaps max so whatever.
@@ -1253,6 +1279,10 @@ DWM2R();
 	form > .container-fluid > .row{
 		border-right:2px solid #ccc;
 		border-bottom:2px solid #ccc;
+	}
+
+	form .row b {
+		color: #F33;
 	}
 </style>
 
