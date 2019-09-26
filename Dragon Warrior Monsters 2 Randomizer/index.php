@@ -108,8 +108,7 @@ $FlagSettings = array(
 		'label' => 'Monster Growth',
 		'options' => array(
 			array('value' => 'Redistribute', 'description' => 'Monster stat growth values will add to the same total, but will be randomly distributed.'),
-			// TODO: Implement shuffle option
-			// array('value' => 'Shuffle', 'description' => 'Monsters will keep the same six growth values, but they will be randomly shuffled.'),
+			array('value' => 'Shuffle', 'description' => 'Monsters will keep the same six growth values, but they will be randomly shuffled.'),
 			array('value' => 'None', 'description' => 'Do not randomize monster stats.'),
 		),
 	),
@@ -119,8 +118,7 @@ $FlagSettings = array(
 		'label' => 'Monster Resistances',
 		'options' => array(
 			array('value' => 'Redistribute', 'description' => 'Monster stat resistance values will add to the same total, but will be randomly distributed.'),
-			// TODO: Implement shuffle option
-			// array('value' => 'Shuffle', 'description' => 'Monsters will keep the same 27 resistance values, but they will be randomly shuffled.'),
+			array('value' => 'Shuffle', 'description' => 'Monsters will keep the same 27 resistance values, but they will be randomly shuffled.'),
 			array('value' => 'None', 'description' => 'Do not randomize monster resistances.'),
 		),
 	),
@@ -631,6 +629,18 @@ function ShuffleMonsterGrowth()
 					$total_stats--;
 				}
 			}
+		} elseif ($Flags["Growth"] == "Shuffle") {
+			$options = [];
+			for ($j = 0; $j < 6; $j++)
+			{
+				$options[] = getMonsterByte($i, 14 + $j);
+			}
+			for ($j = 0; $j < 6; $j++)
+			{
+				$chosen_offset = Random() % count($options);
+				$chosen = array_splice($options, $chosen_offset, 1);
+				setMonsterByte($i, 14 + $j, $chosen[0]);
+			}
 		}
 		
 		//If we're in Genius Mode, all monsters get 31 int growth
@@ -682,6 +692,18 @@ function ShuffleMonsterResistances()
 					setMonsterByte($i, 20 + $slot, getMonsterByte($i, 20 + $slot) + 1);
 					$total_resistances--;
 				}
+			}
+		} elseif ($Flags["Resistance"] == "Shuffle") {
+			$options = [];
+			for ($j = 0; $j < 27; $j++)
+			{
+				$options[] = getMonsterByte($i, 20 + $j);
+			}
+			for ($j = 0; $j < 27; $j++)
+			{
+				$chosen_offset = Random() % count($options);
+				$chosen = array_splice($options, $chosen_offset, 1);
+				setMonsterByte($i, 20 + $j, $chosen[0]);
 			}
 		}
 	}
