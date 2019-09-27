@@ -875,7 +875,7 @@ function ShuffleEncounters()
 				$total_stats += getEncounterWord($i, 10 + $j * 2);
 			}
 			//Double the base stats for our starting monster, because Slash is a little weak at level one.
-			if($j == 0) $total_stats *= 2;
+			if($i == 0) $total_stats *= 2;
 			
 			//Take the percentage of the GROWTH allocated to each stat and multiply by the total BASE
 			for ($j = 0; $j < 6; $j++)
