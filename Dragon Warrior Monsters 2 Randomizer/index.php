@@ -1,9 +1,19 @@
 <?php
-/* dbsettings.php just overwrites these four variables, forces SSL, and turns off error reporting */
 $dbaddress = 'localhost';
 $dbuser = 'USERNAME';
 $dbpass = 'PASSWORD';
 $dbname = 'dragonquestmonsters';
+
+// By default, require the user to upload a ROM themselves, and serve the patched result as a
+// downloadable file. Also, choose default location and filenames for processing ROMs server-side.
+$loadLocalRom = false;
+$saveLocalRom = false;
+$localRomDirectory = "F:\\ROMs\\Gameboy\\DWM2TA\\";
+$localRomInputName = "DWM2TA.gbc";
+$localRomOutputName = "DWM2TA_Random.gbc";
+
+// dbsettings.php overwrites the four $db variables, forces SSL, and turns off error reporting
+// ...and possibly overwrites other things from above. I don't know. Do what you want in there.
 require_once('dbsettings.php');
 
 $db = mysqli_connect($dbaddress,$dbuser,$dbpass);
@@ -312,17 +322,19 @@ function Analytics()
 function loadRom()
 {
 	global $romData;
+	global $localRomDirectory;
+	global $localRomInputName;
+	global $loadLocalRom;
 	try
 	{
-		//This is code for processing a ROM that I already have on the server
-		/*
-		$fileroot = "F:\\ROMs\\Gameboy\\DWM2TA\\";
-		$entry = 'DWM2TA.gbc';
-		//$entry = 'DWM2TA_Random.gbc';
-		$filename = $fileroot.$entry;
-		*/
+		$filename = "";
+		if ($loadLocalRom) {
+			//This is code for processing a ROM that I already have on the server
+			$filename = $localRomDirectory.$localRomInputName;
+		} else {
+			$filename = $_FILES['InputFile']['tmp_name'];
+		}
 
-		$filename = $_FILES['InputFile']['tmp_name'];
 		$file = fopen($filename, "rb");
 		$romData = fread($file,filesize($filename));
 		
@@ -346,21 +358,22 @@ function saveRom()
 {
 	global $romData;
 	global $initial_seed;
+	global $localRomDirectory;
+	global $localRomOutputName;
+	global $saveLocalRom;
 	
-	//This is code for saving a rom to the server instead of spitting it back out to the user
-	/*
-	$fileroot = "F:\\ROMs\\Gameboy\\DWM2TA\\";
-	$entry = 'DWM2TA_Random.gbc';
-
-	$filename = $fileroot.$entry;
-	$file = fopen($filename, "w");
-	fwrite($file,$romData);
-	*/
-	
-	header('Content-Disposition: attachment; filename="DWM2_Rando_'.$initial_seed.'.gbc"');
-	header("Content-Size: ".strlen($romData)*512);
-	echo $romData;
-	die();
+	if ($saveLocalRom) {
+		//This is code for saving a rom to the server instead of spitting it back out to the user
+		$filename = $localRomDirectory.$localRomOutputName;
+		$file = fopen($filename, "w");
+		fwrite($file,$romData);
+		fclose($file);
+	} else {
+		header('Content-Disposition: attachment; filename="DWM2_Rando_'.$initial_seed.'.gbc"');
+		header("Content-Size: ".strlen($romData)*512);
+		echo $romData;
+		die();
+	}
 }
 
 function swap($firstAddress, $secondAddress)
@@ -465,9 +478,9 @@ function WriteText($address, $text)
 function RomDump(){
 	/* Code to create a hexidecimal rom dump of the input rom. */
 	global $romData;
-	
-	$fileroot = "F:\\ROMs\\Gameboy\\DWM2TA\\";
-	$outfilename = $fileroot.'romdump100.txt';
+	global $localRomDirectory;
+
+	$outfilename = $localRomDirectory.'romdump100.txt';
 	$outfile = fopen($outfilename, "w");
 	
 	$str = '';
@@ -490,12 +503,12 @@ function RomDump(){
 function RomTextDump(){
 	/* Code to create a text dump of the input rom. */
 	global $romData;
+	global $localRomDirectory;
 	
 	$files_to_create = 1;
 	
 	for($j = 0; $j < $files_to_create; $j++){
-		$fileroot = "F:\\ROMs\\Gameboy\\DWM2TA\\";
-		$outfilename = $fileroot.'romtextdump'.$j.'.txt';
+		$outfilename = $localRomDirectory.'romtextdump'.$j.'.txt';
 		$outfile = fopen($outfilename, "w");
 		
 		$str = '';
