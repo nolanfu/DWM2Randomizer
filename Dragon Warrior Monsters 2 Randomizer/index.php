@@ -111,6 +111,29 @@ $magicValues = array(
 $error = false;
 $error_message = 'The following errors occurred while generating the new seed:';
 
+// Encounter data guide
+// Offset:   Size:    Description:
+// 0         2        Monster ID
+// 2-5       4*1      Monster Skills
+// 6         2        Monster EXP
+// 8         1        ??? (is EXP 3 bytes instead of 2?)
+// 9         1        Monster level
+// 10        2        Monster HP
+// 12        2        Monster MP
+// 14        2        Monster ATK
+// 16        2        Monster DEF
+// 18        2        Monster AGL
+// 20        2        Monster INT
+// 22-25     ???      ??? (WLD?)
+
+// Monster data guide
+// Offset:   Size:    Description:
+// 0-9       ???      ???
+// 10-12     3*1      Learnable Skills
+// 13        1        Level-up EXP requirement growth?
+// 14-19     6*1      HP/MP/ATK/DEF/AGL/INT Growth
+// 20-46     27*1     Resistances (0 = none, 1 = slight, 2 = some, 3 = immune)
+
 
 $FlagSettings = array(
 	'Growth' => array(
