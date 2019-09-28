@@ -425,6 +425,14 @@ function getMonsterByte($i, $offset)
 	return ord($romData[$first_monster_byte + $i * $monster_data_length + $offset]);
 }
 
+function getMonsterWord($i, $offset)
+{
+	global $romData;
+	global $first_monster_byte;
+	global $monster_data_length;
+	return ord($romData[$first_monster_byte + $i * $monster_data_length + $offset]) + ord($romData[$first_monster_byte + $i * $monster_data_length + $offset + 1])*256;
+}
+
 function setMonsterByte($i, $offset, $value)
 {
 	global $romData;
@@ -568,7 +576,7 @@ function RomTextDump(){
 
 function RomStructuredDataDump() {
 	RomEncounterDump();
-	RomRawMonsterDump();
+	RomMonsterDump();
 }
 
 function RomRawEncounterDump() {
@@ -644,6 +652,60 @@ function RomRawMonsterDump() {
 	fclose($outfile);
 }
 
+function RomMonsterDump() {
+	global $romData;
+	global $monster_data_length;
+	global $monster_count;
+	global $localRomDirectory;
+
+	$outfilename = $localRomDirectory.'rom_monster_dump.txt';
+	$outfile = fopen($outfilename, "w");
+	$str = "                                    Gro  Skills      |----Growth-----| |-------Resistances-------|        ";
+	fwrite($outfile, $str."\n");
+	$str = "Row     Group  ? Fly Run  ?  ? mLVL EXP |------|  ?  HP MP AT DF AG IN |-------------------------| KillXP ";
+	fwrite($outfile, $str."\n");
+	$str = "Offset:     0  1   2   3  4  5    6   7  8  9 10 11  12 13 14 15 16 17 18-44                        45-46 ";
+	fwrite($outfile, $str."\n");
+	$str = "--------------------------------------------------------------------------------------------------------- ";
+	fwrite($outfile, $str."\n");
+	for ($i = 0; $i < $monster_count; $i++) {
+		$str = "";
+		$str .= str_pad($i, 7, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(getMonsterByte($i, 0), 5, ' ', STR_PAD_LEFT) . ' '; // Group
+		$str .= str_pad(dechex(getMonsterByte($i, 1)), 2, '0', STR_PAD_LEFT) . ' ';
+		$str .= (getMonsterByte($i, 2) == 1 ? "Yes" : "  .") . ' '; // Fly?
+		$str .= (getMonsterByte($i, 3) == 1 ? "Yes" : "  .") . ' '; // Run?
+		$str .= str_pad(dechex(getMonsterByte($i, 4)), 2, '0', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex(getMonsterByte($i, 5)), 2, '0', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(getMonsterByte($i, 6), 4, ' ', STR_PAD_LEFT) . ' '; // Max LVL
+		$str .= str_pad(getMonsterByte($i, 7), 3, ' ', STR_PAD_LEFT) . ' '; // Next level EXP growth
+		for ($j = 8; $j <= 10; $j++) {
+			$str .= str_pad(dechex(getMonsterByte($i, $j)), 2, '0', STR_PAD_LEFT) . ' '; // Skills
+		}
+		$str .= str_pad(dechex(getMonsterByte($i, 11)), 2, '0', STR_PAD_LEFT) . ' ';
+		$str .= ' ';
+		for ($j = 12; $j <= 17; $j++) {
+			$str .= str_pad(getMonsterByte($i, $j), 2, ' ', STR_PAD_LEFT) . ' '; // Stat growth
+		}
+		for ($j = 18; $j <= 44; $j++) {
+			$res = getMonsterByte($i, $j);
+			if ($res == 0) {
+				$str .= ".";
+			} elseif ($res == 1) {
+				$str .= "o";
+			} elseif ($res == 2) {
+				$str .= "O";
+			} else {
+				$str .= "X";
+			}
+		}
+		$str .= ' ';
+		$str .= str_pad(getMonsterWord($i, 45), 6, ' ', STR_PAD_LEFT) . ' '; // Base EXP gain for kill?
+
+		fwrite($outfile,$str."\n");
+	}
+	fclose($outfile);
+}
 
 
 function PopulateValidMonsterIDs(){
