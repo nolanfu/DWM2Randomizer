@@ -85,12 +85,13 @@ function Random($MultiRandom = true){ //Defaulting MultiRandom to true for this 
 $romData;
 $ValidMonsterIDs = array(); //This is the actual ID number of the monster
 $ValidMonsterGrowthIndecies = array(); //This is the position of the monster in the "growths" list
+$MonsterNames = array(); // Monster ID -> Name
 $encounter_data_length = 26;
 $first_encounter_byte = 0xD008F;
 $encounter_count = 614; // TODO: Too big
 $monster_data_length = 47;
 $first_monster_byte = 0xD436A;
-$monster_count = 323; // TODO: Not big enough!?
+$monster_count = 323;
 $magicValues = array(
 	'Hoodsquid Encounter' => 26,
 	'ArmyAnt Encounter' => 0xB9, // 185
@@ -110,38 +111,6 @@ $magicValues = array(
 );
 $error = false;
 $error_message = 'The following errors occurred while generating the new seed:';
-
-// Encounter data guide
-// Offset:   Size:    Description:
-// 0         2        Monster ID
-// 2-5       4*1      Monster Skills
-// 6         2        Monster EXP
-// 8         1        ??? (values range from 0 to 7, inclusive. Three bit flag?)
-// 9         1        Monster level
-// 10        2        Monster HP
-// 12        2        Monster MP
-// 14        2        Monster ATK
-// 16        2        Monster DEF
-// 18        2        Monster AGL
-// 20        2        Monster INT
-// 22-25     ???      ???
-
-// Monster data guide
-// Offset:   Size:    Description:
-// 0         1        Monster family (00-0a)
-// 1         1        ??? (Possible values are 0-3, most are 2. Sexes found in the wild?)
-// 2         1        ??? (Flying flag? Possible values are 0 and 1. Almost always matches offset 5, except for monster family 0x09 and a couple of other exceptions)
-// 3         1        ??? (Metaly, Metabble, and MetalKing have 1, the rest are 0. Run away flag?)
-// 4         1        ??? (Monster rarity? Possible values are 1-7. Value is 6 for all members of monster family 0x0a. Very few values below 3. 1 values include: Slime, WonderEgg, CrestPent, CragDevil, CactiBall, FooHero)
-// 5         1        ??? (Possible values are 0, 1, 2, and 3. Almost always matches offset 2, except for monster family 0x09 and a couple other exceptions: GigaDraco: 1 here, but 0 in offset 2. PomPomBom: 0 here, but 1 in offset 2. Water family is almost always 2, except for Starfish, which is 3.)
-// 6         1        Max unbred level
-// 7         1        Exp required for next level growth
-// 8-10      3*1      Learnable Skills
-// 11        1        ??? (observed values are 0, 1, 2, 3, and 5. Most are 0.)
-// 12-17     6*1      HP/MP/ATK/DEF/AGL/INT Growth
-// 18-44     27*1     Resistances (0 = none, 1 = slight, 2 = some, 3 = immune)
-// 45-46     2        Base EXP value (per level?) on kill
-
 
 $FlagSettings = array(
 	'Growth' => array(
@@ -275,6 +244,8 @@ function DWM2R()
 	if(array_key_exists("Submit",$_REQUEST)){
 		if (!loadRom())
 			return;
+
+		PopulateValidMonsterIDs();
 		
 		//Some functions to dump the ROM in hexidecimal or text format
 		//RomStructuredDataDump();
@@ -315,7 +286,6 @@ function hackRom()
 	}
 	
 	//Now, we actually do the randomizing.  Each step of the randomizer is its own function, for code cleanliness.
-	PopulateValidMonsterIDs();
 	ShuffleMonsterGrowth();
 	ShuffleMonsterResistances();
 	ShuffleMonsterSkills();
@@ -599,23 +569,40 @@ function RomRawEncounterDump() {
 }
 
 function RomEncounterDump() {
+	// Encounter data guide
+	// Offset:   Size:    Description:
+	// 0         2        Monster ID
+	// 2-5       4*1      Monster Skills
+	// 6         2        Monster EXP
+	// 8         1        ??? (values range from 0 to 7, inclusive. Three bit flag?)
+	// 9         1        Monster level
+	// 10        2        Monster HP
+	// 12        2        Monster MP
+	// 14        2        Monster ATK
+	// 16        2        Monster DEF
+	// 18        2        Monster AGL
+	// 20        2        Monster INT
+	// 22-25     ???      ???
 	global $romData;
 	global $encounter_data_length;
 	global $encounter_count;
 	global $localRomDirectory;
+	global $MonsterNames;
 
 	$outfilename = $localRomDirectory.'rom_encounter_dump.txt';
 	$outfile = fopen($outfilename, "w");
-	$str = "Row     mID |--Skills-|   EXP  ? LV    HP    MP   ATK   DEF   AGL   INT  ?  ?  ?  ? ";
+	$str = "Row     mID Name       |--Skills-|   EXP  ? LV    HP    MP   ATK   DEF   AGL   INT  ?  ?  ?  ? ";
 	fwrite($outfile, $str."\n");
-	$str = "Offset:   0  2  3  4  5   6-7  8  9 10-11 12-13 14-15 16-17 18-19 20-21 22 23 24 25 ";
+	$str = "Offset:   0             2  3  4  5   6-7  8  9 10-11 12-13 14-15 16-17 18-19 20-21 22 23 24 25 ";
 	fwrite($outfile, $str."\n");
-	$str = "------------------------------------------------------------------------------------";
+	$str = "---------------------------------------------------------------------------------------------- ";
 	fwrite($outfile, $str."\n");
 	for ($i = 0; $i < $encounter_count; $i++) {
 		$str = "";
 		$str .= str_pad($i, 3, ' ', STR_PAD_LEFT) . '     ';
-		$str .= str_pad(getEncounterWord($i, 0), 3, ' ', STR_PAD_LEFT) . ' ';
+		$monster_id = getEncounterWord($i, 0);
+		$str .= str_pad($monster_id, 3, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad($MonsterNames[$monster_id], 10, ' ') . ' ';
 		for ($j = 2; $j <= 5; $j++) {
 			$str .= str_pad(dechex(getEncounterByte($i, $j)), 2, '0', STR_PAD_LEFT) . ' ';
 		}
@@ -653,24 +640,44 @@ function RomRawMonsterDump() {
 }
 
 function RomMonsterDump() {
+	// Monster data guide
+	// Offset:   Size:    Description:
+	// 0         1        Monster family (00-0a)
+	// 1         1        ??? (Possible values are 0-3, most are 2. Sexes found in the wild?)
+	// 2         1        ??? (Flying flag? Possible values are 0 and 1. Almost always matches offset 5, except for monster family 0x09 and a couple of other exceptions)
+	// 3         1        ??? (Metaly, Metabble, and MetalKing have 1, the rest are 0. Run away flag?)
+	// 4         1        ??? (Monster rarity? Possible values are 1-7. Value is 6 for all members of monster family 0x0a. Very few values below 3. 1 values include: Slime, WonderEgg, CrestPent, CragDevil, CactiBall, FooHero)
+	// 5         1        ??? (Possible values are 0, 1, 2, and 3. Almost always matches offset 2, except for monster family 0x09 and a couple other exceptions: GigaDraco: 1 here, but 0 in offset 2. PomPomBom: 0 here, but 1 in offset 2. Water family is almost always 2, except for Starfish, which is 3.)
+	// 6         1        Max unbred level
+	// 7         1        Exp required for next level growth
+	// 8-10      3*1      Learnable Skills
+	// 11        1        ??? (observed values are 0, 1, 2, 3, and 5. Most are 0.)
+	// 12-17     6*1      HP/MP/ATK/DEF/AGL/INT Growth
+	// 18-44     27*1     Resistances (0 = none, 1 = slight, 2 = some, 3 = immune)
+	// 45-46     2        Base EXP value (per level?) on kill
 	global $romData;
 	global $monster_data_length;
 	global $monster_count;
 	global $localRomDirectory;
+	global $ValidMonsterGrowthIndecies;
+	global $MonsterNames;
 
 	$outfilename = $localRomDirectory.'rom_monster_dump.txt';
 	$outfile = fopen($outfilename, "w");
-	$str = "                                    Gro  Skills      |----Growth-----| |-------Resistances-------|        ";
+	$str = "                                                   Gro  Skills      |----Growth-----| |-------Resistances-------|        ";
 	fwrite($outfile, $str."\n");
-	$str = "Row     Group  ? Fly Run  ?  ? mLVL EXP |------|  ?  HP MP AT DF AG IN |-------------------------| KillXP ";
+	$str = "Row     mID Name       Group  ? Fly Run  ?  ? mLVL EXP |------|  ?  HP MP AT DF AG IN |-------------------------| KillXP ";
 	fwrite($outfile, $str."\n");
-	$str = "Offset:     0  1   2   3  4  5    6   7  8  9 10 11  12 13 14 15 16 17 18-44                        45-46 ";
+	$str = "Offset:                    0  1   2   3  4  5    6   7  8  9 10 11  12 13 14 15 16 17 18-44                        45-46 ";
 	fwrite($outfile, $str."\n");
-	$str = "--------------------------------------------------------------------------------------------------------- ";
+	$str = "------------------------------------------------------------------------------------------------------------------------ ";
 	fwrite($outfile, $str."\n");
 	for ($i = 0; $i < $monster_count; $i++) {
 		$str = "";
 		$str .= str_pad($i, 7, ' ', STR_PAD_LEFT) . ' ';
+		$monster_id = $ValidMonsterGrowthIndecies[$i];
+		$str .= str_pad($monster_id, 3, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad($MonsterNames[$monster_id], 10, ' ') . ' ';
 		$str .= str_pad(getMonsterByte($i, 0), 5, ' ', STR_PAD_LEFT) . ' '; // Group
 		$str .= str_pad(dechex(getMonsterByte($i, 1)), 2, '0', STR_PAD_LEFT) . ' ';
 		$str .= (getMonsterByte($i, 2) == 1 ? "Yes" : "  .") . ' '; // Fly?
@@ -712,6 +719,7 @@ function PopulateValidMonsterIDs(){
 	global $Flags;
 	global $ValidMonsterIDs;
 	global $ValidMonsterGrowthIndecies;
+	global $MonsterNames;
 	global $magicValues;
 	
 	//This is the ID stored in the SRAM that determines which monster you have.
@@ -762,9 +770,12 @@ function PopulateValidMonsterIDs(){
 			$ValidMonsterGrowthIndecies[] = $i;
 		}
 	}
-	
-	
-	
+
+	$monster_list_query = "SELECT * FROM dragonwarriormonsters2 order by id asc";
+	execute($monster_list_query);
+	while($monster = get()){
+		$MonsterNames[$monster["id"]] = $monster["name"];
+	}
 }
 
 
