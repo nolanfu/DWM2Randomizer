@@ -86,6 +86,9 @@ $romData;
 $ValidMonsterIDs = array(); //This is the actual ID number of the monster
 $ValidMonsterGrowthIndecies = array(); //This is the position of the monster in the "growths" list
 $MonsterNames = array(); // Monster ID -> Name
+$MonsterIDsByName = array(); // Monster Name -> ID
+$SkillNames = array(); // Skill ID -> Name
+$SkillIDsByName = array(); // Skill Name -> ID
 $encounter_data_length = 26;
 $first_encounter_byte = 0xD008F;
 $encounter_count = 614; // TODO: Too big
@@ -93,12 +96,8 @@ $monster_data_length = 47;
 $first_monster_byte = 0xD436A;
 $monster_count = 323;
 $magicValues = array(
-	'Hoodsquid Encounter' => 26,
-	'ArmyAnt Encounter' => 0xB9, // 185
-	'Madgopher Encounter' => 0x5A, // 90
+	'HoodSquid Drop Encounter' => 26,
 
-	'LureDance Skill' => 0x7A,
-	'BeDragon Skill' => 59,
 	'Healing Skills' => array(
 		22,23,24,25,26, // Healing spells
 		30,31,32, // Vivify/Revive/Farewell
@@ -106,8 +105,6 @@ $magicValues = array(
 		133, // TatsuCall (Tatsu can cast HealMore)
 		160,161, // LifeSong/LoveRain
 	),
-
-	'Yeti Monster' => 0x56,
 );
 $error = false;
 $error_message = 'The following errors occurred while generating the new seed:';
@@ -245,7 +242,7 @@ function DWM2R()
 		if (!loadRom())
 			return;
 
-		PopulateValidMonsterIDs();
+		PopulateMetadata();
 		
 		//Some functions to dump the ROM in hexidecimal or text format
 		//RomStructuredDataDump();
@@ -591,11 +588,11 @@ function RomEncounterDump() {
 
 	$outfilename = $localRomDirectory.'rom_encounter_dump.txt';
 	$outfile = fopen($outfilename, "w");
-	$str = "Row     mID Name       |--Skills-|   EXP  ? LV    HP    MP   ATK   DEF   AGL   INT  ?  ?  ?  ? ";
+	$str = "Row     mID Name       Boss |--Skills-|   EXP  ? LV    HP    MP   ATK   DEF   AGL   INT  ?  ?  ?  ? ";
 	fwrite($outfile, $str."\n");
-	$str = "Offset:   0             2  3  4  5   6-7  8  9 10-11 12-13 14-15 16-17 18-19 20-21 22 23 24 25 ";
+	$str = "Offset:   0                  2  3  4  5   6-7  8  9 10-11 12-13 14-15 16-17 18-19 20-21 22 23 24 25 ";
 	fwrite($outfile, $str."\n");
-	$str = "---------------------------------------------------------------------------------------------- ";
+	$str = "--------------------------------------------------------------------------------------------------- ";
 	fwrite($outfile, $str."\n");
 	for ($i = 0; $i < $encounter_count; $i++) {
 		$str = "";
@@ -603,6 +600,7 @@ function RomEncounterDump() {
 		$monster_id = getEncounterWord($i, 0);
 		$str .= str_pad($monster_id, 3, ' ', STR_PAD_LEFT) . ' ';
 		$str .= str_pad($MonsterNames[$monster_id], 10, ' ') . ' ';
+		$str .= (isBossEncounter($i) ? 'Boss' : '    ') . ' ';
 		for ($j = 2; $j <= 5; $j++) {
 			$str .= str_pad(dechex(getEncounterByte($i, $j)), 2, '0', STR_PAD_LEFT) . ' ';
 		}
@@ -715,22 +713,38 @@ function RomMonsterDump() {
 }
 
 
-function PopulateValidMonsterIDs(){
+function PopulateMetadata(){
 	global $Flags;
 	global $ValidMonsterIDs;
 	global $ValidMonsterGrowthIndecies;
 	global $MonsterNames;
+	global $MonsterIDsByName;
+	global $SkillNames;
+	global $SkillIDsByName;
 	global $magicValues;
-	
-	//This is the ID stored in the SRAM that determines which monster you have.
-	//It's also used within the table of base-stats for each monster.
-	//NOTE 0x1B is Butch and I don't think he should be used?
+
+	$monster_list_query = "SELECT * FROM dragonwarriormonsters2 order by id asc";
+	execute($monster_list_query);
+	while($monster = get()){
+		$MonsterNames[$monster["id"]] = $monster["name"];
+		$MonsterIDsByName[$monster["name"]] = $monster["id"];
+	}
+
+	$skill_list_query = "SELECT * FROM dragonwarriormonsters2_skills order by id asc";
+	execute($skill_list_query);
+	while($skill = get()){
+		$SkillNames[$skill["id"]] = $skill["Name"];
+		$SkillIdsByName[$skill["Name"]] = $skill["id"];
+	}
 	
 	if($Flags["YetiMode"] == "On"){
-		$ValidMonsterIDs[] = $magicValues["Yeti Monster"];
+		$ValidMonsterIDs[] = $MonsterIDsByName["Yeti"];
 	}
 	else
 	{
+		//This is the ID stored in the SRAM that determines which monster you have.
+		//It's also used within the table of base-stats for each monster.
+		//NOTE 0x1B is Butch and I don't think he should be used?
 		for ($i = 0; $i <= 0x17E; $i++)
 		{
 			if (
@@ -769,12 +783,6 @@ function PopulateValidMonsterIDs(){
 		{
 			$ValidMonsterGrowthIndecies[] = $i;
 		}
-	}
-
-	$monster_list_query = "SELECT * FROM dragonwarriormonsters2 order by id asc";
-	execute($monster_list_query);
-	while($monster = get()){
-		$MonsterNames[$monster["id"]] = $monster["name"];
 	}
 }
 
@@ -914,12 +922,13 @@ function ShuffleMonsterSkills()
 	global $romData;
 	global $monster_count;
 	global $magicValues;
+	global $SkillIDsByName;
 
 	$tier_one_skills = array( 1, 4, 7, 10, 13, 16, 19, 21, 22, 25, 27, 30, 32, 33, 34, 35, 36, 37, 39, 41, 43, 45, 46, 47, 49, 51, 52, 53, 54, 56, 57, 58, 60, 61, 62, 63, 64, 68, 72, 74, 75, 76, 78, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 137, 138, 139, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 153, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169 );
 
 	// Remove BeDragon unless we've specifically asked to keep it.
 	if ($Flags["Skills"] != "Random With BeDragon") {
-		$index = array_search($magicValues["BeDragon Skill"], $tier_one_skills);
+		$index = array_search($SkillIDsByName["BeDragon"], $tier_one_skills);
 		if ($index !== false) {
 			unset($tier_one_skills[$index]);
 		}
@@ -1007,6 +1016,7 @@ function ShuffleEncounters()
 	global $romData;
 	global $ValidMonsterIDs;
 	global $ValidMonsterGrowthIndecies;
+	global $MonsterIDsByName;
 	global $encounter_count;
 	global $magicValues;
 	
@@ -1020,7 +1030,7 @@ function ShuffleEncounters()
 			//Allow the starting monster to be selectable
 			$monsterid = $Flags["StartingMonster"];
 		}
-		elseif($i == $magicValues["Hoodsquid Encounter"]){
+		elseif($i == $magicValues["HoodSquid Drop Encounter"]){
 			//Special case: The hoodsquid needs to be a water-type. (0x13C - 0x15B, 32 monsters)
 			//TODO: Yeti Mode won't put a yeti here ):
 			$monsterid = Random() % 32 + 0x13C;
@@ -1036,7 +1046,7 @@ function ShuffleEncounters()
 			//Need to ensure Army Ant/Madgopher are obtainable before Ice, so let's not randomize them.
 			//      I like the idea of replacing them with any monster in the Pirate overworld (all zones), but I think that requires me to manually track down all of the addresses of the overworld enemies.
 			//		Note that each monster only shows up once.
-			if(getEncounterWord($i, 0) != $magicValues["Madgopher Encounter"] && getEncounterWord($i, 0) != $magicValues["ArmyAnt Encounter"]){
+			if(getEncounterWord($i, 0) != $MonsterIDsByName["MadGopher"] && getEncounterWord($i, 0) != $MonsterIDsByName["ArmyAnt"]){
 				setEncounterWord($i, 0, $monsterid);
 			}
 			
@@ -1178,8 +1188,8 @@ function ShuffleEncounters()
 			setEncounterByte($i, 2 + $j, $return_skill);
 		}
 		//Hoodsquid should always know LureDance as its fourth move
-		if($i == $magicValues["Hoodsquid Encounter"]){
-			setEncounterByte($i, 4, $magicValues["LureDance Skill"]);
+		if($i == $magicValues["HoodSquid Drop Encounter"]){
+			setEncounterByte($i, 4, $SkillIDsByName["LureDance"]);
 		}
 		
 		//Swap empty moves to the back.  Just gonna "brute force" a bubble sort; could be more efficient but it's nine swaps max so whatever.
