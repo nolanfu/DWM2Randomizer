@@ -90,7 +90,7 @@ $first_encounter_byte = 0xD008F;
 $encounter_count = 614;
 $monster_data_length = 47;
 $first_monster_byte = 0xD4368;
-$monster_count = 313;
+$monster_count = 323;
 $magicValues = array(
 	'Hoodsquid Encounter' => 26,
 	'ArmyAnt Encounter' => 0xB9, // 185
@@ -116,7 +116,7 @@ $error_message = 'The following errors occurred while generating the new seed:';
 // 0         2        Monster ID
 // 2-5       4*1      Monster Skills
 // 6         2        Monster EXP
-// 8         1        ??? (is EXP 3 bytes instead of 2?)
+// 8         1        ??? (values range from 0 to 7, inclusive. Three bit flag?)
 // 9         1        Monster level
 // 10        2        Monster HP
 // 12        2        Monster MP
@@ -124,13 +124,21 @@ $error_message = 'The following errors occurred while generating the new seed:';
 // 16        2        Monster DEF
 // 18        2        Monster AGL
 // 20        2        Monster INT
-// 22-25     ???      ??? (WLD?)
+// 22-25     ???      ???
 
 // Monster data guide
 // Offset:   Size:    Description:
-// 0-9       ???      ???
+// 0-1       2        Base EXP value (per level?) on kill for previous entry? (yep, we need to shift everything 2 bytes)
+// 2         1        Monster family (00-0a)
+// 3         1        ??? (Possible values are 0-3, most are 2. Sexes found in the wild?)
+// 4         1        ??? (Flying flag? Possible values are 0 and 1. Almost always matches offset 7, except for monster family 0x09 and a couple of other exceptions)
+// 5         1        ??? (Metaly, Metabble, and MetalKing have 1, the rest are 0. Run away flag?)
+// 6         1        ??? (Monster rarity? Possible values are 1-7. Value is 6 for all members of monster family 0x0a. Very few values below 3. 1 values include: Slime, WonderEgg, CrestPent, CragDevil, CactiBall, FooHero)
+// 7         1        ??? (Possible values are 0, 1, 2, and 3. Almost always matches offset 4, except for monster family 0x09 and a couple other exceptions: GigaDraco: 1 here, but 0 in offset 4. PomPomBom: 0 here, but 1 in offset 4. Water family is almost always 2, except for Starfish, which is 3.)
+// 8         1        Max unbred level
+// 9         1        Exp required for next level growth
 // 10-12     3*1      Learnable Skills
-// 13        1        Level-up EXP requirement growth?
+// 13        1        ??? (observed values are 0, 1, 2, 3, and 5. Most are 0.)
 // 14-19     6*1      HP/MP/ATK/DEF/AGL/INT Growth
 // 20-46     27*1     Resistances (0 = none, 1 = slight, 2 = some, 3 = immune)
 
@@ -269,6 +277,7 @@ function DWM2R()
 			return;
 		
 		//Some functions to dump the ROM in hexidecimal or text format
+		//RomStructuredDataDump();
 		//RomDump();
 		//RomTextDump();
 		//This function will attempt to find all of the bosses in the ROM data based on stats I pulled from Gamefaqs
@@ -555,6 +564,49 @@ function RomTextDump(){
 		fwrite($outfile,$str);
 		fclose($outfile);
 	}
+}
+
+function RomStructuredDataDump() {
+	RomEncounterDump();
+	RomMonsterDump();
+}
+
+function RomEncounterDump() {
+	global $romData;
+	global $encounter_data_length;
+	global $encounter_count;
+	global $localRomDirectory;
+
+	$outfilename = $localRomDirectory.'rom_encounter_dump.txt';
+	$outfile = fopen($outfilename, "w");
+	for ($i = 0; $i < $encounter_count; $i++) {
+		$str = "";
+		for ($j = 0; $j < $encounter_data_length; $j++) {
+			$byte = getEncounterByte($i, $j);
+			$str .= str_pad(dechex($byte), 2, '0', STR_PAD_LEFT) . ' ';
+		}
+		fwrite($outfile,$str."\n");
+	}
+	fclose($outfile);
+}
+
+function RomMonsterDump() {
+	global $romData;
+	global $monster_data_length;
+	global $monster_count;
+	global $localRomDirectory;
+
+	$outfilename = $localRomDirectory.'rom_monster_dump.txt';
+	$outfile = fopen($outfilename, "w");
+	for ($i = 0; $i < $monster_count; $i++) {
+		$str = "";
+		for ($j = 0; $j < $monster_data_length; $j++) {
+			$byte = getMonsterByte($i, $j);
+			$str .= str_pad(dechex($byte), 2, '0', STR_PAD_LEFT) . ' ';
+		}
+		fwrite($outfile,$str."\n");
+	}
+	fclose($outfile);
 }
 
 
@@ -963,11 +1015,11 @@ function ShuffleEncounters()
 		$global_exp_scalar = $Flags["EXPScaling"]/100;
 		setEncounterWord($i, 6, getEncounterWord($i, 6) * $global_exp_scalar);
 		
-		
 		//If we're in Genius Mode, all wild monsters get 999 int
 		if($Flags["GeniusMode"] == "On"){
 			setEncounterWord($i, 10 + 5*2, 999);
 		}
+
 		
 		//Now, let's teach random encounters their skills.  We'll give them the three they're supposed to learn, plus a bonus skill, and let it level up appropriately.
 		$lv  = getEncounterByte($i, 9);
