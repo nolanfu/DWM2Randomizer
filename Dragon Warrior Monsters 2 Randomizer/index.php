@@ -568,16 +568,16 @@ function RomTextDump(){
 
 function RomStructuredDataDump() {
 	RomEncounterDump();
-	RomMonsterDump();
+	RomRawMonsterDump();
 }
 
-function RomEncounterDump() {
+function RomRawEncounterDump() {
 	global $romData;
 	global $encounter_data_length;
 	global $encounter_count;
 	global $localRomDirectory;
 
-	$outfilename = $localRomDirectory.'rom_encounter_dump.txt';
+	$outfilename = $localRomDirectory.'rom_raw_encounter_dump.txt';
 	$outfile = fopen($outfilename, "w");
 	for ($i = 0; $i < $encounter_count; $i++) {
 		$str = "";
@@ -590,7 +590,42 @@ function RomEncounterDump() {
 	fclose($outfile);
 }
 
-function RomMonsterDump() {
+function RomEncounterDump() {
+	global $romData;
+	global $encounter_data_length;
+	global $encounter_count;
+	global $localRomDirectory;
+
+	$outfilename = $localRomDirectory.'rom_encounter_dump.txt';
+	$outfile = fopen($outfilename, "w");
+	$str = "Row     mID |--Skills-|   EXP  ? LV    HP    MP   ATK   DEF   AGL   INT  ?  ?  ?  ? ";
+	fwrite($outfile, $str."\n");
+	$str = "Offset:   0  2  3  4  5   6-7  8  9 10-11 12-13 14-15 16-17 18-19 20-21 22 23 24 25 ";
+	fwrite($outfile, $str."\n");
+	$str = "------------------------------------------------------------------------------------";
+	fwrite($outfile, $str."\n");
+	for ($i = 0; $i < $encounter_count; $i++) {
+		$str = "";
+		$str .= str_pad($i, 3, ' ', STR_PAD_LEFT) . '     ';
+		$str .= str_pad(getEncounterWord($i, 0), 3, ' ', STR_PAD_LEFT) . ' ';
+		for ($j = 2; $j <= 5; $j++) {
+			$str .= str_pad(dechex(getEncounterByte($i, $j)), 2, '0', STR_PAD_LEFT) . ' ';
+		}
+		$str .= str_pad(getEncounterWord($i, 6), 5, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex(getEncounterByte($i, 8)), 2, '0', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(getEncounterByte($i, 9), 2, ' ', STR_PAD_LEFT) . ' ';
+		for ($j = 10; $j <= 20; $j += 2) {
+			$str .= str_pad(getEncounterWord($i, $j), 5, ' ', STR_PAD_LEFT) . ' ';
+		}
+		for ($j = 22; $j <= 25; $j++) {
+			$str .= str_pad(dechex(getEncounterByte($i, $j)), 2, '0', STR_PAD_LEFT) . ' ';
+		}
+		fwrite($outfile, $str."\n");
+	}
+	fclose($outfile);
+}
+
+function RomRawMonsterDump() {
 	global $romData;
 	global $monster_data_length;
 	global $monster_count;
