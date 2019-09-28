@@ -87,10 +87,10 @@ $ValidMonsterIDs = array(); //This is the actual ID number of the monster
 $ValidMonsterGrowthIndecies = array(); //This is the position of the monster in the "growths" list
 $encounter_data_length = 26;
 $first_encounter_byte = 0xD008F;
-$encounter_count = 614;
+$encounter_count = 614; // TODO: Too big
 $monster_data_length = 47;
-$first_monster_byte = 0xD4368;
-$monster_count = 323;
+$first_monster_byte = 0xD436A;
+$monster_count = 323; // TODO: Not big enough!?
 $magicValues = array(
 	'Hoodsquid Encounter' => 26,
 	'ArmyAnt Encounter' => 0xB9, // 185
@@ -128,19 +128,19 @@ $error_message = 'The following errors occurred while generating the new seed:';
 
 // Monster data guide
 // Offset:   Size:    Description:
-// 0-1       2        Base EXP value (per level?) on kill for previous entry? (yep, we need to shift everything 2 bytes)
-// 2         1        Monster family (00-0a)
-// 3         1        ??? (Possible values are 0-3, most are 2. Sexes found in the wild?)
-// 4         1        ??? (Flying flag? Possible values are 0 and 1. Almost always matches offset 7, except for monster family 0x09 and a couple of other exceptions)
-// 5         1        ??? (Metaly, Metabble, and MetalKing have 1, the rest are 0. Run away flag?)
-// 6         1        ??? (Monster rarity? Possible values are 1-7. Value is 6 for all members of monster family 0x0a. Very few values below 3. 1 values include: Slime, WonderEgg, CrestPent, CragDevil, CactiBall, FooHero)
-// 7         1        ??? (Possible values are 0, 1, 2, and 3. Almost always matches offset 4, except for monster family 0x09 and a couple other exceptions: GigaDraco: 1 here, but 0 in offset 4. PomPomBom: 0 here, but 1 in offset 4. Water family is almost always 2, except for Starfish, which is 3.)
-// 8         1        Max unbred level
-// 9         1        Exp required for next level growth
-// 10-12     3*1      Learnable Skills
-// 13        1        ??? (observed values are 0, 1, 2, 3, and 5. Most are 0.)
-// 14-19     6*1      HP/MP/ATK/DEF/AGL/INT Growth
-// 20-46     27*1     Resistances (0 = none, 1 = slight, 2 = some, 3 = immune)
+// 0         1        Monster family (00-0a)
+// 1         1        ??? (Possible values are 0-3, most are 2. Sexes found in the wild?)
+// 2         1        ??? (Flying flag? Possible values are 0 and 1. Almost always matches offset 5, except for monster family 0x09 and a couple of other exceptions)
+// 3         1        ??? (Metaly, Metabble, and MetalKing have 1, the rest are 0. Run away flag?)
+// 4         1        ??? (Monster rarity? Possible values are 1-7. Value is 6 for all members of monster family 0x0a. Very few values below 3. 1 values include: Slime, WonderEgg, CrestPent, CragDevil, CactiBall, FooHero)
+// 5         1        ??? (Possible values are 0, 1, 2, and 3. Almost always matches offset 2, except for monster family 0x09 and a couple other exceptions: GigaDraco: 1 here, but 0 in offset 2. PomPomBom: 0 here, but 1 in offset 2. Water family is almost always 2, except for Starfish, which is 3.)
+// 6         1        Max unbred level
+// 7         1        Exp required for next level growth
+// 8-10      3*1      Learnable Skills
+// 11        1        ??? (observed values are 0, 1, 2, 3, and 5. Most are 0.)
+// 12-17     6*1      HP/MP/ATK/DEF/AGL/INT Growth
+// 18-44     27*1     Resistances (0 = none, 1 = slight, 2 = some, 3 = immune)
+// 45-46     2        Base EXP value (per level?) on kill
 
 
 $FlagSettings = array(
@@ -722,15 +722,15 @@ function ShuffleMonsterGrowth()
 			for ($j = 0; $j < 6; $j++)
 			{
 				//We're going to set a minimum growth value at 1 because growth of 0 SUCKS
-				$total_stats += getMonsterByte($i, 14 + $j) - 1;
-				setMonsterByte($i, 14 + $j, 1);
+				$total_stats += getMonsterByte($i, 12 + $j) - 1;
+				setMonsterByte($i, 12 + $j, 1);
 			}
 
 			//Start by assigning 30 points: 20 to one stat and 10 to another (Or the same?)
 			$slot1 = Random() % 6; //Named slot1 because C# is throwing a fit if I re-use the same var name in the loop below...
-			setMonsterByte($i, 14 + $slot1, getMonsterByte($i, 14 + $slot1) + 20);
+			setMonsterByte($i, 12 + $slot1, getMonsterByte($i, 12 + $slot1) + 20);
 			$slot1 = Random() % 6;
-			setMonsterByte($i, 14 + $slot1, getMonsterByte($i, 14 + $slot1) + 10);
+			setMonsterByte($i, 12 + $slot1, getMonsterByte($i, 12 + $slot1) + 10);
 			$total_stats -= 30;
 
 			if($total_stats > 31*6) $total_stats = 31*6;
@@ -740,15 +740,15 @@ function ShuffleMonsterGrowth()
 				$safety = 0;
 				//Do not let the stat go over 31
 				//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
-				while(getMonsterByte($i, 14 + $slot) >= 31){
+				while(getMonsterByte($i, 12 + $slot) >= 31){
 					$slot = ($slot + 1) % 6;
 					$safety++;
 					if($safety >= 6) break;
 				}
 				if($safety >= 6) break;
-				if (getMonsterByte($i, 14 + $slot) < 31)
+				if (getMonsterByte($i, 12 + $slot) < 31)
 				{
-					setMonsterByte($i, 14 + $slot, getMonsterByte($i, 14 + $slot) + 1);
+					setMonsterByte($i, 12 + $slot, getMonsterByte($i, 12 + $slot) + 1);
 					$total_stats--;
 				}
 			}
@@ -756,19 +756,19 @@ function ShuffleMonsterGrowth()
 			$options = [];
 			for ($j = 0; $j < 6; $j++)
 			{
-				$options[] = getMonsterByte($i, 14 + $j);
+				$options[] = getMonsterByte($i, 12 + $j);
 			}
 			for ($j = 0; $j < 6; $j++)
 			{
 				$chosen_offset = Random() % count($options);
 				$chosen = array_splice($options, $chosen_offset, 1);
-				setMonsterByte($i, 14 + $j, $chosen[0]);
+				setMonsterByte($i, 12 + $j, $chosen[0]);
 			}
 		}
 		
 		//If we're in Genius Mode, all monsters get 31 int growth
 		if($Flags["GeniusMode"] == "Yes"){
-			setMonsterByte($i, 14 + 5, 31);
+			setMonsterByte($i, 12 + 5, 31);
 		}
 
 	}
@@ -793,8 +793,8 @@ function ShuffleMonsterResistances()
 			$total_resistances = 0;
 			for ($j = 0; $j < 27; $j++)
 			{
-				$total_resistances += getMonsterByte($i, 20 + $j);
-				setMonsterByte($i, 20 + $j, 0);
+				$total_resistances += getMonsterByte($i, 18 + $j);
+				setMonsterByte($i, 18 + $j, 0);
 			}
 			if($total_resistances > 27*3) $total_resistances = 27*3;
 			while ($total_resistances > 0)
@@ -803,16 +803,16 @@ function ShuffleMonsterResistances()
 				//2019 03 11 - ealm - Initialize this variable idiot
 				$safety = 0;
 				//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
-				while(getMonsterByte($i, 20 + $slot) >= 3){
+				while(getMonsterByte($i, 18 + $slot) >= 3){
 					$slot = ($slot + 1) % 27;
 					$safety++;
 					if($safety >= 27) break;
 				}
 				if($safety >= 27) break;
 				//Do not let the stat go over 3
-				if (getMonsterByte($i, 20 + $slot) < 3)
+				if (getMonsterByte($i, 18 + $slot) < 3)
 				{
-					setMonsterByte($i, 20 + $slot, getMonsterByte($i, 20 + $slot) + 1);
+					setMonsterByte($i, 18 + $slot, getMonsterByte($i, 18 + $slot) + 1);
 					$total_resistances--;
 				}
 			}
@@ -820,13 +820,13 @@ function ShuffleMonsterResistances()
 			$options = [];
 			for ($j = 0; $j < 27; $j++)
 			{
-				$options[] = getMonsterByte($i, 20 + $j);
+				$options[] = getMonsterByte($i, 18 + $j);
 			}
 			for ($j = 0; $j < 27; $j++)
 			{
 				$chosen_offset = Random() % count($options);
 				$chosen = array_splice($options, $chosen_offset, 1);
-				setMonsterByte($i, 20 + $j, $chosen[0]);
+				setMonsterByte($i, 18 + $j, $chosen[0]);
 			}
 		}
 	}
@@ -877,9 +877,9 @@ function ShuffleMonsterSkills()
 			{
 				$skill3 = Random() % count($tier_one_skills);
 			}
-			setMonsterByte($i, 10, $tier_one_skills[$skill1]);
-			setMonsterByte($i, 11, $tier_one_skills[$skill2]);
-			setMonsterByte($i, 12, $tier_one_skills[$skill3]);
+			setMonsterByte($i, 8, $tier_one_skills[$skill1]);
+			setMonsterByte($i, 9, $tier_one_skills[$skill2]);
+			setMonsterByte($i, 10, $tier_one_skills[$skill3]);
 		}
 	}
 
@@ -974,7 +974,7 @@ function ShuffleEncounters()
 			for ($j = 0; $j < 6; $j++)
 			{
 				if($j == 0 && $is_boss_I_think) continue;
-				$total_growth_stats += getMonsterByte($MonsterGrowthIndex, 14 + $j);
+				$total_growth_stats += getMonsterByte($MonsterGrowthIndex, 12 + $j);
 			}
 			
 			//Add up the monster's BASE STATS
@@ -1006,7 +1006,7 @@ function ShuffleEncounters()
 					setEncounterWord($i, 10 + $j * 2, $new_stat);
 				}else{
 					//2018 06 25 - ealm - Renaming this variable for clarity.  This is the growth value for this stat.
-					$stat_growth = getMonsterByte($MonsterGrowthIndex, 14 + $j);
+					$stat_growth = getMonsterByte($MonsterGrowthIndex, 12 + $j);
 					//Divide by total growth stats to get this stat's "share" ratio, multiply by total base stats
 					$new_stat = floor($stat_growth * $total_stats / $total_growth_stats);
 					
@@ -1068,13 +1068,13 @@ function ShuffleEncounters()
 		for($j = 0; $j < 4; $j++){
 			//Loop through all three skills the monster should learn, plus a BONUS SKILL
 			if($j <> 3){
-				$skill = getMonsterByte($MonsterGrowthIndex, 10 + $j);
+				$skill = getMonsterByte($MonsterGrowthIndex, 8 + $j);
 			}else{
 				$skill = Random() % 169 + 1;
 				//Re-roll until this isn't the same skill as the three it innately learns.
-				while($skill == getMonsterByte($MonsterGrowthIndex, 10) ||
-					  $skill == getMonsterByte($MonsterGrowthIndex, 11) ||
-					  $skill == getMonsterByte($MonsterGrowthIndex, 12))
+				while($skill == getMonsterByte($MonsterGrowthIndex, 8) ||
+					  $skill == getMonsterByte($MonsterGrowthIndex, 9) ||
+					  $skill == getMonsterByte($MonsterGrowthIndex, 10))
 					  {
 					$skill = Random() % 169 + 1;
 				}
