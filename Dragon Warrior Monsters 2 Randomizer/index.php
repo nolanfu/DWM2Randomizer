@@ -91,7 +91,7 @@ $SkillNames = array(); // Skill ID -> Name
 $SkillIDsByName = array(); // Skill Name -> ID
 $encounter_data_length = 26;
 $first_encounter_byte = 0xD008F;
-$encounter_count = 614; // TODO: Too big
+$encounter_count = 591;
 $monster_data_length = 47;
 $first_monster_byte = 0xD436A;
 $monster_count = 323;
@@ -600,7 +600,7 @@ function RomEncounterDump() {
 		$monster_id = getEncounterWord($i, 0);
 		$str .= str_pad($monster_id, 3, ' ', STR_PAD_LEFT) . ' ';
 		$str .= str_pad($MonsterNames[$monster_id], 10, ' ') . ' ';
-		$str .= (isBossEncounter($i) ? 'Boss' : '    ') . ' ';
+		$str .= (isBossEncounter($i) ? 'Boss' : (isBossRecruit($i) ? 'Recr' : '    ')) . ' ';
 		for ($j = 2; $j <= 5; $j++) {
 			$str .= str_pad(dechex(getEncounterByte($i, $j)), 2, '0', STR_PAD_LEFT) . ' ';
 		}
@@ -1000,10 +1000,23 @@ function isBossEncounter($i)
 		case 421: //Sky Metabble
 		case 107: //Sky EvilArmor
 		case 106: //Sky Mudou
-		case 115: //Limbo GigaDraco
-		case 114: //Limbo Centasaur
-		case 116: //Limbo Garudian
+		case 114: //Limbo Centasaur/DeadNoble
+		case 115: //Limbo GigaDraco/Armorpion
+		case 116: //Limbo Garudian/Grakos
 		case 376: //Limbo Darck
+			return 1;
+	}
+  return 0;
+}
+
+function isBossRecruit() {
+	// Some of the bosses can be recruited, but their recruitable stats are stored in a different
+	// encounter than the actual boss fight.
+	switch($i){
+		case 7: //Oasis CurseLamp
+		case 26: //Pirate Hoodsquid
+		case 386: //Oasis Beavern
+		case 427: //Sky MadCondor
 			return 1;
 	}
   return 0;
