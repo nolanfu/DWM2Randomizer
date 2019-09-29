@@ -109,6 +109,7 @@ $magicValues = array(
 $error = false;
 $error_message = 'The following errors occurred while generating the new seed:';
 
+
 $FlagSettings = array(
 	'Growth' => array(
 		'default' => 'None',
@@ -571,7 +572,7 @@ function RomEncounterDump() {
 	// 0         2        Monster ID
 	// 2-5       4*1      Monster Skills
 	// 6         2        Monster EXP
-	// 8         1        ??? (values range from 0 to 7, inclusive. Three bit flag?)
+	// 8         1        Join Rate (Values from 0-7. 0 = max join chance, 7 = never)
 	// 9         1        Monster level
 	// 10        2        Monster HP
 	// 12        2        Monster MP
@@ -579,7 +580,7 @@ function RomEncounterDump() {
 	// 16        2        Monster DEF
 	// 18        2        Monster AGL
 	// 20        2        Monster INT
-	// 22-25     ???      ???
+	// 22-25     4x1      Personality Traits / Motivation
 	global $romData;
 	global $encounter_data_length;
 	global $encounter_count;
@@ -588,7 +589,7 @@ function RomEncounterDump() {
 
 	$outfilename = $localRomDirectory.'rom_encounter_dump.txt';
 	$outfile = fopen($outfilename, "w");
-	$str = "Row     mID Name       Boss |--Skills-|   EXP  ? LV    HP    MP   ATK   DEF   AGL   INT  ?  ?  ?  ? ";
+	$str = "Row     mID Name       Boss |--Skills-|   EXP Jn LV    HP    MP   ATK   DEF   AGL   INT Personality ";
 	fwrite($outfile, $str."\n");
 	$str = "Offset:   0                  2  3  4  5   6-7  8  9 10-11 12-13 14-15 16-17 18-19 20-21 22 23 24 25 ";
 	fwrite($outfile, $str."\n");
@@ -600,7 +601,7 @@ function RomEncounterDump() {
 		$monster_id = getEncounterWord($i, 0);
 		$str .= str_pad($monster_id, 3, ' ', STR_PAD_LEFT) . ' ';
 		$str .= str_pad($MonsterNames[$monster_id], 10, ' ') . ' ';
-		$str .= (isBossEncounter($i) ? 'Boss' : (isBossRecruit($i) ? 'Recr' : '    ')) . ' ';
+		$str .= (isArenaEncounter($i) ? 'Arna' : (isBossEncounter($i) ? 'Boss' : (isBossRecruit($i) ? 'Recr' : '    '))) . ' ';
 		for ($j = 2; $j <= 5; $j++) {
 			$str .= str_pad(dechex(getEncounterByte($i, $j)), 2, '0', STR_PAD_LEFT) . ' ';
 		}
@@ -641,18 +642,18 @@ function RomMonsterDump() {
 	// Monster data guide
 	// Offset:   Size:    Description:
 	// 0         1        Monster family (00-0a)
-	// 1         1        ??? (Possible values are 0-3, most are 2. Sexes found in the wild?)
-	// 2         1        ??? (Flying flag? Possible values are 0 and 1. Almost always matches offset 5, except for monster family 0x09 and a couple of other exceptions)
-	// 3         1        ??? (Metaly, Metabble, and MetalKing have 1, the rest are 0. Run away flag?)
-	// 4         1        ??? (Monster rarity? Possible values are 1-7. Value is 6 for all members of monster family 0x0a. Very few values below 3. 1 values include: Slime, WonderEgg, CrestPent, CragDevil, CactiBall, FooHero)
-	// 5         1        ??? (Possible values are 0, 1, 2, and 3. Almost always matches offset 2, except for monster family 0x09 and a couple other exceptions: GigaDraco: 1 here, but 0 in offset 2. PomPomBom: 0 here, but 1 in offset 2. Water family is almost always 2, except for Starfish, which is 3.)
+	// 1         1        Sex distribution (Possible values are 0-3, most are 2.)
+	// 2         1        Flying flag (e.g. LegSweep miss)
+	// 3         1        Metal / coward flag (Metaly, Metabble, and MetalKing have 1, the rest are 0.)
+	// 4         1        Join rate in random key worlds (Possible values are 1-7. 7 = never)
+	// 5         1        ??? (Possible values are 0, 1, 2, and 3. Almost always matches offset 2, except for monster family 0x09 and a couple other exceptions: GigaDraco: 1 here, but 0 in offset 2. PomPomBom: 0 here, but 1 in offset 2. Water family is almost always 2, except for Starfish, which is 3. Geyser / water attack related?)
 	// 6         1        Max unbred level
 	// 7         1        Exp required for next level growth
 	// 8-10      3*1      Learnable Skills
-	// 11        1        ??? (observed values are 0, 1, 2, 3, and 5. Most are 0.)
+	// 11        1        ??? (observed values are 0, 1, 2, 3, and 5. Most are 0. Choices for rando world guardians?)
 	// 12-17     6*1      HP/MP/ATK/DEF/AGL/INT Growth
 	// 18-44     27*1     Resistances (0 = none, 1 = slight, 2 = some, 3 = immune)
-	// 45-46     2        Base EXP value (per level?) on kill
+	// 45-46     2        Base EXP value on kill for random key worlds
 	global $romData;
 	global $monster_data_length;
 	global $monster_count;
@@ -968,22 +969,31 @@ function ShuffleMonsterSkills()
 	return true;
 }
 
+function isArenaEncounter($i) {
+	// Kid class: 130-136
+	// Class C: 137-145
+	// Class B: 146-151?
+	// Class A: 152-160
+	// Class S: 161-167
+	// KingLeo/Azurile/Divinegon: 168-170
+	// Post-game arena randos?: 331-375
+	if ($i >= 130 && $i <= 170) { return 1; }
+	if ($i >= 331 && $i <= 375) { return 1; }
+	return 0;
+}
+
 function isBossEncounter($i)
 {
 	//Here's a list of all of the bosses in the speedrun.  I hope.
 	//I don't have stats for all of the arena monsters, and I'm not finding the post-game monsters in the ROM data.
 	//In fact, I'm only finding partial matches for most of THESE monsters... would Gamefaqs lie to me?
+
+	// Treat arena fights as bosses.
+	if (isArenaEncounter($i)) { return 1; }
+
 	switch($i){
 		case 385: //Oasis Beavern
 		case 6: //Oasis CurseLamp
-		case 130: //K-1 Babble
-		case 131: //K-1 PearlGel
-		case 132: //K-2 SpikyBoy
-		case 133: //K-2 Pixy
-		case 134: //K-2 Dracky
-		case 135: //K-3 MadRaven
-		case 136: //K-3 Kitehawk
-		case 135: //K-3 MadRaven
 		case 25: //Pirate Hoodsquid
 		case 398: //Pirate Boneslave
 		case 27: //Pirate CaptDead
@@ -1013,14 +1023,19 @@ function isBossRecruit() {
 	// Some of the bosses can be recruited, but their recruitable stats are stored in a different
 	// encounter than the actual boss fight.
 	switch($i){
+		case 386: //Oasis Beavern
 		case 7: //Oasis CurseLamp
 		case 26: //Pirate Hoodsquid
-		case 386: //Oasis Beavern
 		case 427: //Sky MadCondor
 			return 1;
 	}
   return 0;
 }
+
+// Other encounter notes:
+// Randomly found mimics?: 117-124 (levels 1/5/10/15/20/25/30/35)
+// MedalKing egg rewards: 377-382 (MadCat, HornBeet, Skydragon, Octogon, Servant, Darck)
+// Wandering monster master randos?: 171-330
 
 function ShuffleEncounters()
 {
@@ -1216,6 +1231,8 @@ function ShuffleEncounters()
 		//END ENCOUNTER SKILLS
 	}
 
+	//TODO: What are monster IDs 373-377? (used in encounters 125-129)
+	//TODO: What are the monster IDs for Dimensaur / Lamia / Kagebou? Are these the last three entries in the monster list?
 	//TODO: If it needs it, make starting monster have a minimum of 10 on each stat (15-20 for HP/MP?)
 	//TODO: Pick from three monsters instead of just selecting one
 	//TODO: Distribute stats on monsters by deleveling them and then leveling them back up
