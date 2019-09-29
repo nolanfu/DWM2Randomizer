@@ -78,9 +78,7 @@ function Random($MultiRandom = true){ //Defaulting MultiRandom to true for this 
 	return ($counter + $seed) % 256;
 }
 
-
-
-
+// Site with useful information: https://dragon-warrior-monsters-2-modding.fandom.com/wiki/Dragon_Warrior_Monsters_2_Modding_HomePage
 
 $romData;
 $ValidMonsterIDs = array(); //This is the actual ID number of the monster
@@ -1056,9 +1054,7 @@ function ShuffleEncounters()
 		if($Flags["Encounters"] == "Poorly") //Previously "Based On Growth"
 		{
 			
-			//Need to ensure Army Ant/Madgopher are obtainable before Ice, so let's not randomize them.
-			//      I like the idea of replacing them with any monster in the Pirate overworld (all zones), but I think that requires me to manually track down all of the addresses of the overworld enemies.
-			//		Note that each monster only shows up once.
+			//Need to ensure Army Ant/Madgopher are obtainable before Ice.
 			if(getEncounterWord($i, 0) != $MonsterIDsByName["MadGopher"] && getEncounterWord($i, 0) != $MonsterIDsByName["ArmyAnt"]){
 				setEncounterWord($i, 0, $monsterid);
 			}
@@ -1128,23 +1124,22 @@ function ShuffleEncounters()
 				}
 			}
 		}
-		//Ramp up early EXP gains with the following statements.
+		//Ramp up early EXP gains.
 		$exp = getEncounterWord($i, 6);
-		if($exp < 20)
-		{
+		if($exp < 20) {
 			setEncounterWord($i, 6, $exp*2.5);
-		}
-		elseif($exp < 40)
-		{
+		} elseif($exp < 40) {
 			setEncounterWord($i, 6, $exp*2);
-		}
-		elseif($exp < 100)
-		{
+		} elseif($exp < 100) {
 			setEncounterWord($i, 6, $exp*1.5);
 		}
-		//2018 25 2018 - ealm - Adding global EXP scalar (TODO: Test this lol)
 		$global_exp_scalar = $Flags["EXPScaling"]/100;
-		setEncounterWord($i, 6, getEncounterWord($i, 6) * $global_exp_scalar);
+		$exp = getEncounterWord($i, 6) * $global_exp_scalar;
+		// EXP is 2 bytes. Don't overflow and end up with a small EXP amount.
+		if ($exp > 0xFFFF) {
+			$exp = 0xFFFF;
+		}
+		setEncounterWord($i, 6, $exp);
 		
 		//If we're in Genius Mode, all wild monsters get 999 int
 		if($Flags["GeniusMode"] == "On"){
@@ -1216,8 +1211,7 @@ function ShuffleEncounters()
 		//END ENCOUNTER SKILLS
 	}
 
-	//TODO: What are monster IDs 373-377? (used in encounters 125-129)
-	//TODO: What are the monster IDs for Dimensaur / Lamia / Kagebou? Are these the last three entries in the monster list?
+	// Old to-do list:
 	//TODO: If it needs it, make starting monster have a minimum of 10 on each stat (15-20 for HP/MP?)
 	//TODO: Pick from three monsters instead of just selecting one
 	//TODO: Distribute stats on monsters by deleveling them and then leveling them back up
