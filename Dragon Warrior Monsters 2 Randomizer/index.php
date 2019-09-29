@@ -90,8 +90,11 @@ $MonsterIDsByName = array(); // Monster Name -> ID
 $SkillNames = array(); // Skill ID -> Name
 $SkillIDsByName = array(); // Skill Name -> ID
 $encounter_data_length = 26;
-$first_encounter_byte = 0xD008F;
-$encounter_count = 591;
+$first_bank_encounter_start = 0xD0075 + $encounter_data_length;
+$first_bank_encounter_count = 591;
+$second_bank_encounter_start = 0x288056 + $encounter_data_length;
+$second_bank_encounter_count = 93;
+$encounter_count = $first_bank_encounter_count + $second_bank_encounter_count;
 $monster_data_length = 47;
 $first_monster_byte = 0xD436A;
 $monster_count = 323;
@@ -409,45 +412,47 @@ function setMonsterByte($i, $offset, $value)
 	$romData[$first_monster_byte + $i * $monster_data_length + $offset] = chr(floor($value % 256));
 }
 
+function calcEncounterOffset($i, $offset) {
+	global $encounter_data_length;
+	global $first_bank_encounter_start;
+	global $first_bank_encounter_count;
+	global $second_bank_encounter_start;
+	
+	if ($i < $first_bank_encounter_count) {
+		return ($first_bank_encounter_start + $i * $encounter_data_length + $offset);
+	}
+	return ($second_bank_encounter_start + ($i - $first_bank_encounter_count) * $encounter_data_length + $offset);
+}
+
 function getEncounterByte($i, $offset)
 {
 	global $romData;
-	global $first_encounter_byte;
-	global $encounter_data_length;
-	return ord($romData[$first_encounter_byte + $i * $encounter_data_length + $offset]);
+	return ord($romData[calcEncounterOffset($i, $offset)]);
 }
 
 function getEncounterWord($i, $offset)
 {
 	global $romData;
-	global $first_encounter_byte;
-	global $encounter_data_length;
-	return ord($romData[$first_encounter_byte + $i * $encounter_data_length + $offset]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + $offset + 1])*256;
+	return ord($romData[calcEncounterOffset($i, $offset)]) + ord($romData[calcEncounterOffset($i, $offset) + 1])*256;
 }
 
 function setEncounterByte($i, $offset, $value)
 {
 	global $romData;
-	global $first_encounter_byte;
-	global $encounter_data_length;
-	$romData[$first_encounter_byte + $i * $encounter_data_length + $offset] = chr(floor($value % 256));
+	$romData[calcEncounterOffset($i, $offset)] = chr(floor($value % 256));
 }
 
 function setEncounterWord($i, $offset, $value)
 {
 	global $romData;
-	global $first_encounter_byte;
-	global $encounter_data_length;
-	$romData[$first_encounter_byte + $i * $encounter_data_length + $offset] = chr(floor($value % 256));
-	$romData[$first_encounter_byte + $i * $encounter_data_length + $offset + 1] = chr(floor($value / 256));
+	$romData[calcEncounterOffset($i, $offset)] = chr(floor($value % 256));
+	$romData[calcEncounterOffset($i, $offset) + 1] = chr(floor($value / 256));
 }
 
 function swapEncounterBytes($i, $offset_a, $offset_b)
 {
 	global $romData;
-	global $first_encounter_byte;
-	global $encounter_data_length;
-	swap($first_encounter_byte + $i * $encounter_data_length + $offset_a, $first_encounter_byte + $i * $encounter_data_length + $offset_b);
+	swap(calcEncounterOffset($i, $offset_a), calcEncounterOffset($i, $offset_b));
 }
 
 
