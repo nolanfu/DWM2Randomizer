@@ -984,49 +984,29 @@ function isArenaEncounter($i) {
 
 function isBossEncounter($i)
 {
-	//Here's a list of all of the bosses in the speedrun.  I hope.
-	//I don't have stats for all of the arena monsters, and I'm not finding the post-game monsters in the ROM data.
-	//In fact, I'm only finding partial matches for most of THESE monsters... would Gamefaqs lie to me?
+	// Treat all encounters that have a 0% recruitment rate as bosses. This includes arena fights.
+	if (getEncounterByte($i, 8) == 7) { return 1; }
 
-	// Treat arena fights as bosses.
-	if (isArenaEncounter($i)) { return 1; }
-
+	// There are three boss encounters that apparently allow normal recruitment mechanics from the fight.
 	switch($i){
-		case 385: //Oasis Beavern
 		case 6: //Oasis CurseLamp
-		case 25: //Pirate Hoodsquid
-		case 398: //Pirate Boneslave
-		case 27: //Pirate CaptDead
 		case 399: //Pirate KingSquid
-		case 49: //Ice Bombcrag
-		case 408: //Ice AgDevil
-		case 409: //Ice Puppetor
-		case 67: //Ice Goathorn
-		case 410: //Ice ArcDemon
-		case 411: //Ice Goathorn 2
 		case 426: //Sky MadCondor
-		case 108: //Sky Skeletor
-		case 99: //Sky Niterich
-		case 421: //Sky Metabble
-		case 107: //Sky EvilArmor
-		case 106: //Sky Mudou
-		case 114: //Limbo Centasaur/DeadNoble
-		case 115: //Limbo GigaDraco/Armorpion
-		case 116: //Limbo Garudian/Grakos
-		case 376: //Limbo Darck
 			return 1;
 	}
   return 0;
 }
 
 function isBossRecruit() {
-	// Some of the bosses can be recruited, but their recruitable stats are stored in a different
-	// encounter than the actual boss fight.
+	// Some of the bosses can be recruited through storyline means, but their recruitable stats
+	// are stored in a different encounter than the actual boss fight.
+	// TODO: Missing some?
 	switch($i){
 		case 386: //Oasis Beavern
 		case 7: //Oasis CurseLamp
 		case 26: //Pirate Hoodsquid
 		case 427: //Sky MadCondor
+		case 430: //Pirate KingSquid
 			return 1;
 	}
   return 0;
