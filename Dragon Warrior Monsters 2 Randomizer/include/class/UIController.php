@@ -186,7 +186,30 @@ class UIController {
 <?php
 	}
 
-	function drawPage() {
+	function draw() {
+?>
+		<html>
+			<head>
+				<?php $this->drawHeader(); ?>
+			</head>
+			<body>
+				<?php $this->drawBody(); ?>
+			</body>
+		</html>
+<?php
+	}
+
+	function drawHeader() {
+?>
+		<script type="text/javascript" src="/Library/jquery-3.0.0.js"></script>
+		<script type="text/javascript" src="/Library/bootstrap-4.0.0/js/bootstrap.js"></script>
+		<script type="text/javascript" src="dwm2rando.js"></script>
+		<link rel="stylesheet" href="/Library/bootstrap-4.0.0/css/bootstrap.css" />
+		<link rel="Stylesheet" href="dwm2rando.css" />
+<?php
+	}
+
+	function drawBody() {
 		$this->drawErrorMessage();
 		$this->drawForm();
 	}

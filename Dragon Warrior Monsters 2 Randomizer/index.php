@@ -13,19 +13,4 @@ include_once("config/settings.php");
 
 $controller = new UIController();
 $controller->handleRequest();
-
-?>
-<html>
-<head>
-	<script type="text/javascript" src="/Library/jquery-3.0.0.js"></script>
-	<script type="text/javascript" src="/Library/bootstrap-4.0.0/js/bootstrap.js"></script>
-	<script type="text/javascript" src="dwm2rando.js"></script>
-	<link rel="stylesheet" href="/Library/bootstrap-4.0.0/css/bootstrap.css" />
-	<link rel="Stylesheet" href="dwm2rando.css" />
-</head>
-<body>
-
-<?php $controller->drawPage(); ?>
-
-</body>
-</html>
+$controller->draw();
