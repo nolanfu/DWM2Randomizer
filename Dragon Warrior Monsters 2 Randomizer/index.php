@@ -5,10 +5,12 @@
 require_once("include/db.php");
 require_once("include/globals.php");
 require_once("include/random.php");
-require_once("include/rom.php");
+require_once("include/class/Rom.php");
 require_once("include/rom_dump.php");
 require_once("include/rom_hacks.php");
 require_once("include/ui.php");
+
+include_once("config/settings.php");
 
 main();
 

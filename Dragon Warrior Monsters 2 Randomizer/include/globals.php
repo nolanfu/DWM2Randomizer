@@ -1,15 +1,6 @@
 <?php
 
 //TODO: Get rid of globals.
-// By default, require the user to upload a ROM themselves, and serve the patched result as a
-// downloadable file. Also, choose default location and filenames for processing ROMs server-side.
-$loadLocalRom = true;
-$saveLocalRom = false;
-$localRomDirectory = "F:\\ROMs\\Gameboy\\DWM2TA\\";
-$localRomInputName = "DWM2TA.gbc";
-$localRomOutputName = "DWM2TA_Random.gbc";
-
-include_once("config/settings.php");
 
 $romData;
 $ValidMonsterIDs = array(); //This is the actual ID number of the monster

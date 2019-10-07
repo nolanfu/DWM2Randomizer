@@ -1,10 +1,8 @@
 <?php
 
-function ShuffleMonsterGrowth()
+function ShuffleMonsterGrowth($rom)
 {
 	global $Flags;
-	
-	global $romData;
 	global $monster_count;
 
 	for ($i = 0; $i < $monster_count; $i++)
@@ -16,15 +14,15 @@ function ShuffleMonsterGrowth()
 			for ($j = 0; $j < 6; $j++)
 			{
 				//We're going to set a minimum growth value at 1 because growth of 0 SUCKS
-				$total_stats += getMonsterByte($i, 12 + $j) - 1;
-				setMonsterByte($i, 12 + $j, 1);
+				$total_stats += $rom->getMonsterByte($i, 12 + $j) - 1;
+				$rom->setMonsterByte($i, 12 + $j, 1);
 			}
 
 			//Start by assigning 30 points: 20 to one stat and 10 to another (Or the same?)
 			$slot1 = Random() % 6; //Named slot1 because C# is throwing a fit if I re-use the same var name in the loop below...
-			setMonsterByte($i, 12 + $slot1, getMonsterByte($i, 12 + $slot1) + 20);
+			$rom->setMonsterByte($i, 12 + $slot1, $rom->getMonsterByte($i, 12 + $slot1) + 20);
 			$slot1 = Random() % 6;
-			setMonsterByte($i, 12 + $slot1, getMonsterByte($i, 12 + $slot1) + 10);
+			$rom->setMonsterByte($i, 12 + $slot1, $rom->getMonsterByte($i, 12 + $slot1) + 10);
 			$total_stats -= 30;
 
 			if($total_stats > 31*6) $total_stats = 31*6;
@@ -34,15 +32,15 @@ function ShuffleMonsterGrowth()
 				$safety = 0;
 				//Do not let the stat go over 31
 				//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
-				while(getMonsterByte($i, 12 + $slot) >= 31){
+				while($rom->getMonsterByte($i, 12 + $slot) >= 31){
 					$slot = ($slot + 1) % 6;
 					$safety++;
 					if($safety >= 6) break;
 				}
 				if($safety >= 6) break;
-				if (getMonsterByte($i, 12 + $slot) < 31)
+				if ($rom->getMonsterByte($i, 12 + $slot) < 31)
 				{
-					setMonsterByte($i, 12 + $slot, getMonsterByte($i, 12 + $slot) + 1);
+					$rom->setMonsterByte($i, 12 + $slot, $rom->getMonsterByte($i, 12 + $slot) + 1);
 					$total_stats--;
 				}
 			}
@@ -50,19 +48,19 @@ function ShuffleMonsterGrowth()
 			$options = [];
 			for ($j = 0; $j < 6; $j++)
 			{
-				$options[] = getMonsterByte($i, 12 + $j);
+				$options[] = $rom->getMonsterByte($i, 12 + $j);
 			}
 			for ($j = 0; $j < 6; $j++)
 			{
 				$chosen_offset = Random() % count($options);
 				$chosen = array_splice($options, $chosen_offset, 1);
-				setMonsterByte($i, 12 + $j, $chosen[0]);
+				$rom->setMonsterByte($i, 12 + $j, $chosen[0]);
 			}
 		}
 		
 		//If we're in Genius Mode, all monsters get 31 int growth
 		if($Flags["GeniusMode"] == "Yes"){
-			setMonsterByte($i, 12 + 5, 31);
+			$rom->setMonsterByte($i, 12 + 5, 31);
 		}
 
 	}
@@ -72,11 +70,10 @@ function ShuffleMonsterGrowth()
 
 
 
-function ShuffleMonsterResistances()
+function ShuffleMonsterResistances($rom)
 {
 	global $Flags;
 	
-	global $romData;
 	global $monster_count;
 	
 	for ($i = 0; $i < $monster_count; $i++)
@@ -87,8 +84,8 @@ function ShuffleMonsterResistances()
 			$total_resistances = 0;
 			for ($j = 0; $j < 27; $j++)
 			{
-				$total_resistances += getMonsterByte($i, 18 + $j);
-				setMonsterByte($i, 18 + $j, 0);
+				$total_resistances += $rom->getMonsterByte($i, 18 + $j);
+				$rom->setMonsterByte($i, 18 + $j, 0);
 			}
 			if($total_resistances > 27*3) $total_resistances = 27*3;
 			while ($total_resistances > 0)
@@ -97,16 +94,16 @@ function ShuffleMonsterResistances()
 				//2019 03 11 - ealm - Initialize this variable idiot
 				$safety = 0;
 				//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
-				while(getMonsterByte($i, 18 + $slot) >= 3){
+				while($rom->getMonsterByte($i, 18 + $slot) >= 3){
 					$slot = ($slot + 1) % 27;
 					$safety++;
 					if($safety >= 27) break;
 				}
 				if($safety >= 27) break;
 				//Do not let the stat go over 3
-				if (getMonsterByte($i, 18 + $slot) < 3)
+				if ($rom->getMonsterByte($i, 18 + $slot) < 3)
 				{
-					setMonsterByte($i, 18 + $slot, getMonsterByte($i, 18 + $slot) + 1);
+					$rom->setMonsterByte($i, 18 + $slot, $rom->getMonsterByte($i, 18 + $slot) + 1);
 					$total_resistances--;
 				}
 			}
@@ -114,13 +111,13 @@ function ShuffleMonsterResistances()
 			$options = [];
 			for ($j = 0; $j < 27; $j++)
 			{
-				$options[] = getMonsterByte($i, 18 + $j);
+				$options[] = $rom->getMonsterByte($i, 18 + $j);
 			}
 			for ($j = 0; $j < 27; $j++)
 			{
 				$chosen_offset = Random() % count($options);
 				$chosen = array_splice($options, $chosen_offset, 1);
-				setMonsterByte($i, 18 + $j, $chosen[0]);
+				$rom->setMonsterByte($i, 18 + $j, $chosen[0]);
 			}
 		}
 	}
@@ -129,10 +126,9 @@ function ShuffleMonsterResistances()
 }
 
 
-function ShuffleMonsterSkills()
+function ShuffleMonsterSkills($rom)
 {
 	global $Flags;
-	global $romData;
 	global $monster_count;
 	global $magicValues;
 	global $SkillIDsByName;
@@ -172,68 +168,19 @@ function ShuffleMonsterSkills()
 			{
 				$skill3 = Random() % count($tier_one_skills);
 			}
-			setMonsterByte($i, 8, $tier_one_skills[$skill1]);
-			setMonsterByte($i, 9, $tier_one_skills[$skill2]);
-			setMonsterByte($i, 10, $tier_one_skills[$skill3]);
+			$rom->setMonsterByte($i, 8, $tier_one_skills[$skill1]);
+			$rom->setMonsterByte($i, 9, $tier_one_skills[$skill2]);
+			$rom->setMonsterByte($i, 10, $tier_one_skills[$skill3]);
 		}
 	}
 
 	return true;
 }
 
-function isArenaEncounter($i) {
-	// Kid class: 130-136
-	// Class C: 137-145
-	// Class B: 146-151?
-	// Class A: 152-160
-	// Class S: 161-167
-	// KingLeo/Azurile/Divinegon: 168-170
-	// Post-game arena randos?: 331-375
-	if ($i >= 130 && $i <= 170) { return 1; }
-	if ($i >= 331 && $i <= 375) { return 1; }
-	return 0;
-}
-
-function isBossEncounter($i)
-{
-	// Treat all encounters that have a 0% recruitment rate as bosses. This includes arena fights.
-	if (getEncounterByte($i, 8) == 7) { return 1; }
-
-	// There are three boss encounters that apparently allow normal recruitment mechanics from the fight.
-	switch($i){
-		case 6: //Oasis CurseLamp
-		case 399: //Pirate KingSquid
-		case 426: //Sky MadCondor
-			return 1;
-	}
-  return 0;
-}
-
-function isBossRecruit() {
-	// Some of the bosses can be recruited through storyline means, but their recruitable stats
-	// are stored in a different encounter than the actual boss fight.
-	// TODO: Missing some?
-	switch($i){
-		case 386: //Oasis Beavern
-		case 7: //Oasis CurseLamp
-		case 26: //Pirate Hoodsquid
-		case 427: //Sky MadCondor
-		case 430: //Pirate KingSquid
-			return 1;
-	}
-  return 0;
-}
-
-// Other encounter notes:
-// Randomly found mimics?: 117-124 (levels 1/5/10/15/20/25/30/35)
-// MedalKing egg rewards: 377-382 (MadCat, HornBeet, Skydragon, Octogon, Servant, Darck)
-// Wandering monster master randos?: 171-330
-
-function ShuffleEncounters()
+function ShuffleEncounters($rom)
 {
 	global $Flags;
 	
-	global $romData;
 	global $ValidMonsterIDs;
 	global $ValidMonsterGrowthIndecies;
 	global $MonsterIDsByName;
@@ -241,7 +188,7 @@ function ShuffleEncounters()
 	global $magicValues;
 	
 	//Code patch: Reduce level of SpikyBoys in Oasis to 1 so that they level faster
-	$romData[0xD00CC] = chr(0x01);
+	$rom->data[0xD00CC] = chr(0x01);
 
 	for ($i = 0; $i < $encounter_count; $i++)
 	{
@@ -264,18 +211,18 @@ function ShuffleEncounters()
 		{
 			
 			//Need to ensure Army Ant/Madgopher are obtainable before Ice.
-			if(getEncounterWord($i, 0) != $MonsterIDsByName["MadGopher"] && getEncounterWord($i, 0) != $MonsterIDsByName["ArmyAnt"]){
-				setEncounterWord($i, 0, $monsterid);
+			if($rom->getEncounterWord($i, 0) != $MonsterIDsByName["MadGopher"] && $rom->getEncounterWord($i, 0) != $MonsterIDsByName["ArmyAnt"]){
+				$rom->setEncounterWord($i, 0, $monsterid);
 			}
 			
-			$is_boss_I_think = isBossEncounter($i);
+			$is_boss_I_think = $rom->isBossEncounter($i);
 			
 			//Add up the monster's GROWTH values
 			$total_growth_stats = 0;
 			for ($j = 0; $j < 6; $j++)
 			{
 				if($j == 0 && $is_boss_I_think) continue;
-				$total_growth_stats += getMonsterByte($MonsterGrowthIndex, 12 + $j);
+				$total_growth_stats += $rom->getMonsterByte($MonsterGrowthIndex, 12 + $j);
 			}
 			
 			//Add up the monster's BASE STATS
@@ -283,7 +230,7 @@ function ShuffleEncounters()
 			for ($j = 0; $j < 6; $j++)
 			{
 				if($j == 0 && $is_boss_I_think) continue;
-				$total_stats += getEncounterWord($i, 10 + $j * 2);
+				$total_stats += $rom->getEncounterWord($i, 10 + $j * 2);
 			}
 			//Double the base stats for our starting monster, because Slash is a little weak at level one.
 			if($i == 0) $total_stats *= 2;
@@ -297,17 +244,17 @@ function ShuffleEncounters()
 					//continue;
 					//We're handling boss HP differently.  Basically, we're not changing it.  However...
 					//2018 06 25 - ealm - Adding base stat scaling flags
-					$new_stat = getEncounterWord($i, 10 + $j * 2);
+					$new_stat = $rom->getEncounterWord($i, 10 + $j * 2);
 					
 					//I actually don't want HP to scale the same as other stats.  Let's "soften" the effect of the scalar if it's over 100%.
 					$scalar = $Flags["BossScaling"]/100;
 					//Turns 500/400/300/200 into 300/250/200/150.
 					if($scalar > 1) $scalar = ($scalar - 1) / 2 + 1;
 										
-					setEncounterWord($i, 10 + $j * 2, $new_stat);
+					$rom->setEncounterWord($i, 10 + $j * 2, $new_stat);
 				}else{
 					//2018 06 25 - ealm - Renaming this variable for clarity.  This is the growth value for this stat.
-					$stat_growth = getMonsterByte($MonsterGrowthIndex, 12 + $j);
+					$stat_growth = $rom->getMonsterByte($MonsterGrowthIndex, 12 + $j);
 					//Divide by total growth stats to get this stat's "share" ratio, multiply by total base stats
 					$new_stat = floor($stat_growth * $total_stats / $total_growth_stats);
 					
@@ -329,52 +276,52 @@ function ShuffleEncounters()
 					//2018 06 25 - ealm - Why wasn't this already in here?  Please cap stats (except boss HP, handled above) at 999...
 					if($new_stat > 999) $new_stat = 999;
 					
-					setEncounterWord($i, 10 + $j * 2, $new_stat);
+					$rom->setEncounterWord($i, 10 + $j * 2, $new_stat);
 				}
 			}
 		}
 		//Ramp up early EXP gains.
-		$exp = getEncounterWord($i, 6);
+		$exp = $rom->getEncounterWord($i, 6);
 		if($exp < 20) {
-			setEncounterWord($i, 6, $exp*2.5);
+			$rom->setEncounterWord($i, 6, $exp*2.5);
 		} elseif($exp < 40) {
-			setEncounterWord($i, 6, $exp*2);
+			$rom->setEncounterWord($i, 6, $exp*2);
 		} elseif($exp < 100) {
-			setEncounterWord($i, 6, $exp*1.5);
+			$rom->setEncounterWord($i, 6, $exp*1.5);
 		}
 		$global_exp_scalar = $Flags["EXPScaling"]/100;
-		$exp = getEncounterWord($i, 6) * $global_exp_scalar;
+		$exp = $rom->getEncounterWord($i, 6) * $global_exp_scalar;
 		// EXP is 2 bytes. Don't overflow and end up with a small EXP amount.
 		if ($exp > 0xFFFF) {
 			$exp = 0xFFFF;
 		}
-		setEncounterWord($i, 6, $exp);
+		$rom->setEncounterWord($i, 6, $exp);
 		
 		//If we're in Genius Mode, all wild monsters get 999 int
 		if($Flags["GeniusMode"] == "On"){
-			setEncounterWord($i, 10 + 5*2, 999);
+			$rom->setEncounterWord($i, 10 + 5*2, 999);
 		}
 
 		
 		//Now, let's teach random encounters their skills.  We'll give them the three they're supposed to learn, plus a bonus skill, and let it level up appropriately.
-		$lv  = getEncounterByte($i, 9);
-		$hp  = getEncounterWord($i, 10);
-		$mp  = getEncounterWord($i, 12);
-		$atk = getEncounterWord($i, 14);
-		$def = getEncounterWord($i, 16);
-		$agl = getEncounterWord($i, 18);
-		$int = getEncounterWord($i, 20);
+		$lv  = $rom->getEncounterByte($i, 9);
+		$hp  = $rom->getEncounterWord($i, 10);
+		$mp  = $rom->getEncounterWord($i, 12);
+		$atk = $rom->getEncounterWord($i, 14);
+		$def = $rom->getEncounterWord($i, 16);
+		$agl = $rom->getEncounterWord($i, 18);
+		$int = $rom->getEncounterWord($i, 20);
 		
 		for($j = 0; $j < 4; $j++){
 			//Loop through all three skills the monster should learn, plus a BONUS SKILL
 			if($j <> 3){
-				$skill = getMonsterByte($MonsterGrowthIndex, 8 + $j);
+				$skill = $rom->getMonsterByte($MonsterGrowthIndex, 8 + $j);
 			}else{
 				$skill = Random() % 169 + 1;
 				//Re-roll until this isn't the same skill as the three it innately learns.
-				while($skill == getMonsterByte($MonsterGrowthIndex, 8) ||
-					  $skill == getMonsterByte($MonsterGrowthIndex, 9) ||
-					  $skill == getMonsterByte($MonsterGrowthIndex, 10))
+				while($skill == $rom->getMonsterByte($MonsterGrowthIndex, 8) ||
+					  $skill == $rom->getMonsterByte($MonsterGrowthIndex, 9) ||
+					  $skill == $rom->getMonsterByte($MonsterGrowthIndex, 10))
 					  {
 					$skill = Random() % 169 + 1;
 				}
@@ -402,18 +349,18 @@ function ShuffleEncounters()
 					break;
 				}
 			}
-			setEncounterByte($i, 2 + $j, $return_skill);
+			$rom->setEncounterByte($i, 2 + $j, $return_skill);
 		}
 		//Hoodsquid should always know LureDance as its fourth move
 		if($i == $magicValues["HoodSquid Drop Encounter"]){
-			setEncounterByte($i, 4, $SkillIDsByName["LureDance"]);
+			$rom->setEncounterByte($i, 4, $SkillIDsByName["LureDance"]);
 		}
 		
 		//Swap empty moves to the back.  Just gonna "brute force" a bubble sort; could be more efficient but it's nine swaps max so whatever.
 		for($swapCounter = 0; $swapCounter < 3; $swapCounter++) {
 			for($j = 2; $j <= 4; $j++){
-				if(getEncounterByte($i, $j) == 0xFF){
-					swapEncounterBytes($i, $j, $j + 1);
+				if($rom->getEncounterByte($i, $j) == 0xFF){
+					$rom->swapEncounterBytes($i, $j, $j + 1);
 				}
 			}
 		}
@@ -436,12 +383,11 @@ function ShuffleEncounters()
 	return true;
 }
 
-function CodePatches(){
-	global $romData;
+function CodePatches($rom){
 	//Wherever "clear water" is mentioned, write "tonic" over the word "water"
 	//TODO: Find more of these; Bizhawk's text search is glitchy.  Do a text dump?
-	WriteText(0x266624, "tonic");
-	WriteText(0x0A107B, "tonic");
+	$rom->writeText(0x266624, "tonic");
+	$rom->writeText(0x0A107B, "tonic");
 	
 	//TODO: This code to randomize your team name in the arena is glitchy...  If I write too many (or too few?) characters over existing text, the text box can glitch out.  Might need to figure out what the extra characters are between messages...
 	//This is an array of every instance of "Master ____ and the (Team Name)!", which changes with every rank.
@@ -465,10 +411,10 @@ function CodePatches(){
 			$_team_with_padding .= ' ';
 		}
 		
-		WriteText($Masters[$i][0], $Titles[$title].' ');
-		$romData[$Masters[$i][0]+strlen($Titles[$title])+1] = chr(0xF9);
-		$romData[$Masters[$i][0]+strlen($Titles[$title])+2] = chr(0x00);
-		WriteText($Masters[$i][0]+strlen($Titles[$title])+3, ' and the '.$_team_with_padding);
+		$rom->writeText($Masters[$i][0], $Titles[$title].' ');
+		$rom->data[$Masters[$i][0]+strlen($Titles[$title])+1] = chr(0xF9);
+		$rom->data[$Masters[$i][0]+strlen($Titles[$title])+2] = chr(0x00);
+		$rom->writeText($Masters[$i][0]+strlen($Titles[$title])+3, ' and the '.$_team_with_padding);
 	}
 	*/
 
@@ -476,30 +422,30 @@ function CodePatches(){
 	//0x3FAD-0x3FFF are no-ops, so we'll write our new code in that range.
 	
 	//First, move these three addresses that we're about to replace with the JP command into the new code block
-	$romData[0x3FAD] = $romData[0x186C];
-	$romData[0x3FAE] = $romData[0x186D];
-	$romData[0x3FAF] = $romData[0x186E];
-	//$romData[0x3FB0] = $romData[0x186F];
+	$rom->data[0x3FAD] = $rom->data[0x186C];
+	$rom->data[0x3FAE] = $rom->data[0x186D];
+	$rom->data[0x3FAF] = $rom->data[0x186E];
+	//$rom->data[0x3FB0] = $rom->data[0x186F];
 	
-	$romData[0x186C] = chr(0x00); 	//	nop
-	$romData[0x186D] = chr(0xC3); 	//	JP 0x3FAD	Jump to 0x3FAD
-	$romData[0x186E] = chr(0xAD);	//
-	$romData[0x186F] = chr(0x3F);	//
+	$rom->data[0x186C] = chr(0x00); 	//	nop
+	$rom->data[0x186D] = chr(0xC3); 	//	JP 0x3FAD	Jump to 0x3FAD
+	$rom->data[0x186E] = chr(0xAD);	//
+	$rom->data[0x186F] = chr(0x3F);	//
 	
 	//Now, add my own code...
-	$romData[0x3FB1] = chr(0x3E);	//LD a,FCh		Load 0xFC into register a
-	$romData[0x3FB2] = chr(0xFC);	//
-	$romData[0x3FB3] = chr(0x5F);	//LD e,a		Load register A into register E
+	$rom->data[0x3FB1] = chr(0x3E);	//LD a,FCh		Load 0xFC into register a
+	$rom->data[0x3FB2] = chr(0xFC);	//
+	$rom->data[0x3FB3] = chr(0x5F);	//LD e,a		Load register A into register E
 	
-	//$romData[0x3FB4] = chr(0xCB);	//SLA C			(Turn C from 4 to 8 with a left shift, two-byte command)
-	//$romData[0x3FB5] = chr(0x21);	//
-	$romData[0x3FB4] = chr(0x0E);	//SLA C			(Load the number 8 into register c)
-	$romData[0x3FB5] = chr(0x08);	//
-	$romData[0x3FB6] = chr(0x1A);	//ld a,(de)
-	$romData[0x3FB7] = chr(0xB1);	//or c
-	$romData[0x3FB8] = chr(0x12);	//ld (de),a
+	//$rom->data[0x3FB4] = chr(0xCB);	//SLA C			(Turn C from 4 to 8 with a left shift, two-byte command)
+	//$rom->data[0x3FB5] = chr(0x21);	//
+	$rom->data[0x3FB4] = chr(0x0E);	//SLA C			(Load the number 8 into register c)
+	$rom->data[0x3FB5] = chr(0x08);	//
+	$rom->data[0x3FB6] = chr(0x1A);	//ld a,(de)
+	$rom->data[0x3FB7] = chr(0xB1);	//or c
+	$rom->data[0x3FB8] = chr(0x12);	//ld (de),a
 	
-	$romData[0x3FB9] = chr(0xC9);	//	RET 		End subroutine (Instruction previously at 0x186F)
+	$rom->data[0x3FB9] = chr(0xC9);	//	RET 		End subroutine (Instruction previously at 0x186F)
 	//TODO: Is it possible to get rid of all of the people in front of the monster breeder?
 }
 

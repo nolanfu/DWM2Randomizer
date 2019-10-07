@@ -5,23 +5,22 @@ function main()
 	global $romData;
 	
 	parseArguments();
+	$rom = new Rom();
 	
 	if(array_key_exists("Submit",$_REQUEST)){
-		if (!loadRom())
+		if (!$rom->load())
 			return;
 
 		PopulateMetadata();
 		
 		//Some functions to dump the ROM in hexidecimal or text format
-		//RomStructuredDataDump();
-		//RomDump();
-		//RomTextDump();
-		//This function will attempt to find all of the bosses in the ROM data based on stats I pulled from Gamefaqs
-		//LocateBosses();
+		//RomStructuredDataDump($rom);
+		//RomDump($rom);
+		//RomTextDump($rom);
 		//die();
-		if(strlen($romData) > 0){
-			hackRom();
-			saveRom();
+		if($rom->isLoaded()){
+			hackRom($rom);
+			$rom->save();
 		}
 	}
 }
@@ -53,7 +52,7 @@ function parseArguments() {
 	$initial_seed = $Flags["Seed"];
 }
 
-function hackRom()
+function hackRom($rom)
 {
 	//This function checks the selected flags and determines which randomization subroutines to run
 	
@@ -77,15 +76,11 @@ function hackRom()
 		Random();
 	}
 	
-	//Now, we actually do the randomizing.  Each step of the randomizer is its own function, for code cleanliness.
-	ShuffleMonsterGrowth();
-	ShuffleMonsterResistances();
-	ShuffleMonsterSkills();
-	ShuffleEncounters();
-	//TODO: Shuffle fixed items
-	//TODO: Shuffle random items?
-	//TODO: Shuffle shops/item prices
-	CodePatches();
+	ShuffleMonsterGrowth($rom);
+	ShuffleMonsterResistances($rom);
+	ShuffleMonsterSkills($rom);
+	ShuffleEncounters($rom);
+	CodePatches($rom);
 	Analytics();
 	
 	return true;
