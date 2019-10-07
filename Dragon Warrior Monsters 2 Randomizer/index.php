@@ -3,16 +3,16 @@
 // Site with useful information: https://dragon-warrior-monsters-2-modding.fandom.com/wiki/Dragon_Warrior_Monsters_2_Modding_HomePage
 
 require_once("include/db.php");
-require_once("include/globals.php");
 require_once("include/class/Rom.php");
 require_once("include/class/RandomGenerator.php");
 require_once("include/class/RomModder.php");
+require_once("include/class/UIController.php");
 require_once("include/rom_dump.php");
-require_once("include/ui.php");
 
 include_once("config/settings.php");
 
-$modder = main();
+$controller = new UIController();
+$controller->handleRequest();
 
 ?>
 <html>
@@ -25,7 +25,7 @@ $modder = main();
 </head>
 <body>
 
-<?php drawForm($modder); ?>
+<?php $controller->drawPage(); ?>
 
 </body>
 </html>

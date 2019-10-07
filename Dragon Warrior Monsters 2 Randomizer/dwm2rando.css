@@ -10,3 +10,11 @@ form > .container-fluid > .row{
 form .row b {
 	color: #F33;
 }
+
+.error_message {
+	border: 2px solid red;
+	background-color: #FDD;
+	width: 100%;
+	margin: 5px;
+	padding: 5px;
+}
