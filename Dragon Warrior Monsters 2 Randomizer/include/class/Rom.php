@@ -2,10 +2,22 @@
 
 class Rom {
 	public static $localRomDirectory = "F:\\ROMs\\Gameboy\\DWM2TA\\";
-	public static $localRomInputName = "DWM2TA.gbc"; 
+	public static $localRomInputName = "DWM2TA.gbc";
 	public static $localRomOutputName = "DWM2TGA_Random.gbc";
 	public static $loadLocalRom = false;
 	public static $saveLocalRom = false;
+
+	public static $magicValues = array(
+		'HoodSquid Drop Encounter' => 26,
+
+		'Healing Skills' => array(
+			22,23,24,25,26, // Healing spells
+			30,31,32, // Vivify/Revive/Farewell
+			123,124, // LifeDance/Hustle
+			133, // TatsuCall (Tatsu can cast HealMore)
+			160,161, // LifeSong/LoveRain
+		),
+	);
 
 	public $data = "";
 	public $monsterNames = array(); // Monster ID -> Name
@@ -14,6 +26,38 @@ class Rom {
 	public $skillIDsByName = array(); // Skill Name -> ID
 	public $allowedMonsterIDs = array();
 	public $monsterGrowthStatsIndex = array(); //This is the position of the monster in the "growths" list
+
+	function __construct() {
+		$this->configureMap();
+	}
+
+	function configureMap() {
+		$this->map = array();
+		$this->map["encounters"] = array();
+		$this->map["encounters"]["data_length"] = 26;
+		$this->map["encounters"]["first_bank_start"] = 0xD0075 + $this->map["encounters"]["data_length"];
+		$this->map["encounters"]["first_bank_count"] = 591;
+		$this->map["encounters"]["second_bank_start"] = 0x288056 + $this->map["encounters"]["data_length"];
+		$this->map["encounters"]["second_bank_count"] = 93;
+		$this->map["encounters"]["count"] = $this->map["encounters"]["first_bank_count"] + $this->map["encounters"]["second_bank_count"];
+
+		$this->map["monsters"] = array(
+			"data_length" => 47,
+			"start" => 0xD436A,
+			"count" => 323,
+		);
+
+		$this->map["item_strings"] = array(
+			"start" => 0x224E3,
+			"count" => 91,
+		);
+
+		$this->map["item_behavior"] = array(
+			"start" => 0x58CC2,
+			"count" => 99,
+			"data_length" => 13,
+		);
+	}
 
 	function load() {
 		try
@@ -124,10 +168,12 @@ class Rom {
 		$this->data[$offset + 1] = chr(floor(($value / 256) % 256));
 	}
 
+	function calcStructuredOffset($key, $i, $offset) {
+		return $this->map[$key]["start"] + $i * $this->map[$key]["data_length"] + $offset;
+	}
+
 	function calcMonsterOffset($i, $offset) {
-		global $first_monster_byte;
-		global $monster_data_length;
-		return $first_monster_byte + $i * $monster_data_length + $offset;
+		return $this->calcStructuredOffset("monsters", $i, $offset);
 	}
 
 	function getMonsterByte($i, $offset) {
@@ -143,15 +189,10 @@ class Rom {
 	}
 
 	function calcEncounterOffset($i, $offset) {
-		global $encounter_data_length;
-		global $first_bank_encounter_start;
-		global $first_bank_encounter_count;
-		global $second_bank_encounter_start;
-		
-		if ($i < $first_bank_encounter_count) {
-			return ($first_bank_encounter_start + $i * $encounter_data_length + $offset);
+		if ($i < $this->map["encounters"]["first_bank_count"]) {
+			return ($this->map["encounters"]["first_bank_start"] + $i * $this->map["encounters"]["data_length"] + $offset);
 		}
-		return ($second_bank_encounter_start + ($i - $first_bank_encounter_count) * $encounter_data_length + $offset);
+		return ($this->map["encounters"]["second_bank_start"] + ($i - $this->map["encounters"]["first_bank_count"]) * $this->map["encounters"]["data_length"] + $offset);
 	}
 
 	function getEncounterByte($i, $offset) {

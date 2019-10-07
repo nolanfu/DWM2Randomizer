@@ -2,35 +2,8 @@
 
 //TODO: Get rid of globals.
 
-$encounter_data_length = 26;
-$first_bank_encounter_start = 0xD0075 + $encounter_data_length;
-$first_bank_encounter_count = 591;
-$second_bank_encounter_start = 0x288056 + $encounter_data_length;
-$second_bank_encounter_count = 93;
-$encounter_count = $first_bank_encounter_count + $second_bank_encounter_count;
-$monster_data_length = 47;
-$first_monster_byte = 0xD436A;
-$monster_count = 323;
-$item_strings_start = 0x224E3;
-$item_strings_count = 91;
-$item_behavior_start = 0x58CC2;
-$item_behavior_count = 99;
-$item_behavior_length = 13;
-
-$magicValues = array(
-	'HoodSquid Drop Encounter' => 26,
-
-	'Healing Skills' => array(
-		22,23,24,25,26, // Healing spells
-		30,31,32, // Vivify/Revive/Farewell
-		123,124, // LifeDance/Hustle
-		133, // TatsuCall (Tatsu can cast HealMore)
-		160,161, // LifeSong/LoveRain
-	),
-);
 $error = false;
 $error_message = 'The following errors occurred while generating the new seed:';
-
 
 $FlagSettings = array(
 	'Growth' => array(

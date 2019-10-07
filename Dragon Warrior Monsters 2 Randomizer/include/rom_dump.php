@@ -74,14 +74,11 @@ function RomStructuredDataDump($rom) {
 }
 
 function RomRawEncounterDump($rom) {
-	global $encounter_data_length;
-	global $encounter_count;
-
 	$outfilename = Rom::$localRomDirectory.'rom_raw_encounter_dump.txt';
 	$outfile = fopen($outfilename, "w");
-	for ($i = 0; $i < $encounter_count; $i++) {
+	for ($i = 0; $i < $rom->map["encounters"]["count"]; $i++) {
 		$str = "";
-		for ($j = 0; $j < $encounter_data_length; $j++) {
+		for ($j = 0; $j < $rom->map["encounters"]["data_length"]; $j++) {
 			$byte = $rom->getEncounterByte($i, $j);
 			$str .= str_pad(dechex($byte), 2, '0', STR_PAD_LEFT) . ' ';
 		}
@@ -105,8 +102,6 @@ function RomEncounterDump($rom) {
 	// 18        2        Monster AGL
 	// 20        2        Monster INT
 	// 22-25     4x1      Personality Traits / Motivation
-	global $encounter_data_length;
-	global $encounter_count;
 
 	$outfilename = Rom::$localRomDirectory.'rom_encounter_dump.txt';
 	$outfile = fopen($outfilename, "w");
@@ -116,7 +111,7 @@ function RomEncounterDump($rom) {
 	fwrite($outfile, $str."\n");
 	$str = "--------------------------------------------------------------------------------------------------- ";
 	fwrite($outfile, $str."\n");
-	for ($i = 0; $i < $encounter_count; $i++) {
+	for ($i = 0; $i < $rom->map["encounters"]["count"]; $i++) {
 		$str = "";
 		$str .= str_pad($i, 3, ' ', STR_PAD_LEFT) . '     ';
 		$monster_id = $rom->getEncounterWord($i, 0);
@@ -141,14 +136,11 @@ function RomEncounterDump($rom) {
 }
 
 function RomRawMonsterDump($rom) {
-	global $monster_data_length;
-	global $monster_count;
-
 	$outfilename = Rom::$localRomDirectory.'rom_monster_dump.txt';
 	$outfile = fopen($outfilename, "w");
-	for ($i = 0; $i < $monster_count; $i++) {
+	for ($i = 0; $i < $rom->map["monsters"]["count"]; $i++) {
 		$str = "";
-		for ($j = 0; $j < $monster_data_length; $j++) {
+		for ($j = 0; $j < $rom->map["monsters"]["data_length"]; $j++) {
 			$byte = $rom->getMonsterByte($i, $j);
 			$str .= str_pad(dechex($byte), 2, '0', STR_PAD_LEFT) . ' ';
 		}
@@ -173,8 +165,6 @@ function RomMonsterDump($rom) {
 	// 12-17     6*1      HP/MP/ATK/DEF/AGL/INT Growth
 	// 18-44     27*1     Resistances (0 = none, 1 = slight, 2 = some, 3 = immune)
 	// 45-46     2        Base EXP value on kill for random key worlds
-	global $monster_data_length;
-	global $monster_count;
 
 	$outfilename = Rom::$localRomDirectory.'rom_monster_dump.txt';
 	$outfile = fopen($outfilename, "w");
@@ -186,7 +176,7 @@ function RomMonsterDump($rom) {
 	fwrite($outfile, $str."\n");
 	$str = "------------------------------------------------------------------------------------------------------------------------ ";
 	fwrite($outfile, $str."\n");
-	for ($i = 0; $i < $monster_count; $i++) {
+	for ($i = 0; $i < $rom->map["monsters"]["count"]; $i++) {
 		$str = "";
 		$str .= str_pad($i, 7, ' ', STR_PAD_LEFT) . ' ';
 		$monster_id = (array_key_exists($i, $rom->monsterGrowthStatsIndex) ? $rom->monsterGrowthStatsIndex[$i] : "");
@@ -229,23 +219,20 @@ function RomMonsterDump($rom) {
 }
 
 function RomItemStringsDump($rom) {
-	global $item_strings_start;
-	global $item_strings_count;
-	
 	$outfilename = Rom::$localRomDirectory.'rom_strings_dump.txt';
 	$outfile = fopen($outfilename, "w");
 	$str = "";
 	$hex = "";
 	$counter = 0;
 	for ($i = 0; $i < 1000; $i++) {
-		$byte = ord($rom->data[$item_strings_start + $i]);
+		$byte = ord($rom->data[$rom->map["item_strings"]["start"] + $i]);
 		$hex .= str_pad(dechex($byte), 2, '0', STR_PAD_LEFT) . ' ';
 		if ($byte == 0xf0) {
 			fwrite($outfile,str_pad($str, 18, ' ') . $hex . "\n");
 			$str = "";
 			$hex = "";
 			$counter += 1;
-			if ($counter >= $item_strings_count) {
+			if ($counter >= $rom->map["item_strings"]["count"]) {
 				break;
 			}
 		} elseif ($byte >= 10 && $byte < 36) {
@@ -262,10 +249,6 @@ function RomItemStringsDump($rom) {
 }
 
 function RomItemBehaviorDump($rom) {
-	global $item_behavior_start;
-	global $item_behavior_count;
-	global $item_behavior_length;
-	
 	$outfilename = Rom::$localRomDirectory.'rom_items_dump.txt';
 	$outfile = fopen($outfilename, "w");
 	$str = "Row     Type Price  ? Use  ? Target Icon  ? F1 F2 V1 V2 ";
@@ -275,18 +258,18 @@ function RomItemBehaviorDump($rom) {
 	$str = "------------------------------------------------------- ";
 	fwrite($outfile,$str . "\n");
 	
-	for ($i = 0; $i < $item_behavior_count; $i++) {
+	for ($i = 0; $i < $rom->map["item_behavior"]["count"]; $i++) {
 		$str = "";
 		$str .= str_pad($i, 6, ' ', STR_PAD_LEFT) . '  ';
-		$str .= str_pad($rom->getByte($item_behavior_start + $i * $item_behavior_length + 0), 4, ' ', STR_PAD_LEFT) . ' ';
-		$str .= str_pad($rom->getWord($item_behavior_start + $i * $item_behavior_length + 1), 5, ' ', STR_PAD_LEFT) . ' ';
-		$str .= str_pad(dechex($rom->getByte($item_behavior_start + $i * $item_behavior_length + 3)), 2, ' ', STR_PAD_LEFT) . ' ';
-		$str .= str_pad(dechex($rom->getByte($item_behavior_start + $i * $item_behavior_length + 4)), 3, ' ', STR_PAD_LEFT) . ' ';
-		$str .= str_pad(dechex($rom->getByte($item_behavior_start + $i * $item_behavior_length + 5)), 2, ' ', STR_PAD_LEFT) . ' ';
-		$str .= str_pad(dechex($rom->getByte($item_behavior_start + $i * $item_behavior_length + 6)), 6, ' ', STR_PAD_LEFT) . ' ';
-		$str .= str_pad(dechex($rom->getByte($item_behavior_start + $i * $item_behavior_length + 7)), 4, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad($rom->getByte($rom->calcStructuredOffset("item_behavior", $i, 0)), 4, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad($rom->getWord($rom->calcStructuredOffset("item_behavior", $i, 1)), 5, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex($rom->getByte($rom->calcStructuredOffset("item_behavior", $i, 3))), 2, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex($rom->getByte($rom->calcStructuredOffset("item_behavior", $i, 4))), 3, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex($rom->getByte($rom->calcStructuredOffset("item_behavior", $i, 5))), 2, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex($rom->getByte($rom->calcStructuredOffset("item_behavior", $i, 6))), 6, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex($rom->getByte($rom->calcStructuredOffset("item_behavior", $i, 7))), 4, ' ', STR_PAD_LEFT) . ' ';
 		for ($j = 8; $j <= 12; $j++) {
-			$str .= str_pad(dechex($rom->getByte($item_behavior_start + $i * $item_behavior_length + $j)), 2, '0', STR_PAD_LEFT) . ' ';
+			$str .= str_pad(dechex($rom->getByte($rom->calcStructuredOffset("item_behavior", $i, $j))), 2, '0', STR_PAD_LEFT) . ' ';
 		}
 		fwrite($outfile,$str . "\n");
 	}

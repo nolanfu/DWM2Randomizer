@@ -2,9 +2,8 @@
 
 function ShuffleMonsterGrowth($rom) {
 	global $Flags;
-	global $monster_count;
 
-	for ($i = 0; $i < $monster_count; $i++)
+	for ($i = 0; $i < $rom->map["monsters"]["count"]; $i++)
 	{
 		if ($Flags["Growth"] == "Redistribute")
 		{
@@ -70,16 +69,10 @@ function ShuffleMonsterGrowth($rom) {
 function ShuffleMonsterResistances($rom) {
 	global $Flags;
 	
-	global $monster_count;
-	
-	for ($i = 0; $i < $monster_count; $i++)
-	{
-		if ($Flags["Resistance"] == "Redistribute")
-		{
-			//Repeat for resistances.  There are 27 of these...
+	for ($i = 0; $i < $rom->map["monsters"]["count"]; $i++) {
+		if ($Flags["Resistance"] == "Redistribute") {
 			$total_resistances = 0;
-			for ($j = 0; $j < 27; $j++)
-			{
+			for ($j = 0; $j < 27; $j++) {
 				$total_resistances += $rom->getMonsterByte($i, 18 + $j);
 				$rom->setMonsterByte($i, 18 + $j, 0);
 			}
@@ -87,7 +80,6 @@ function ShuffleMonsterResistances($rom) {
 			while ($total_resistances > 0)
 			{
 				$slot = Random() % 27;
-				//2019 03 11 - ealm - Initialize this variable idiot
 				$safety = 0;
 				//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
 				while($rom->getMonsterByte($i, 18 + $slot) >= 3){
@@ -123,8 +115,6 @@ function ShuffleMonsterResistances($rom) {
 
 function ShuffleMonsterSkills($rom) {
 	global $Flags;
-	global $monster_count;
-	global $magicValues;
 
 	$tier_one_skills = array( 1, 4, 7, 10, 13, 16, 19, 21, 22, 25, 27, 30, 32, 33, 34, 35, 36, 37, 39, 41, 43, 45, 46, 47, 49, 51, 52, 53, 54, 56, 57, 58, 60, 61, 62, 63, 64, 68, 72, 74, 75, 76, 78, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 137, 138, 139, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 153, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169 );
 
@@ -137,7 +127,7 @@ function ShuffleMonsterSkills($rom) {
 	}
 
 	if ($Flags["Skills"] == "Random, No Healing") {
-		foreach ($magicValues["Healing Skills"] as $skillId) {
+		foreach ($rom->magicValues["Healing Skills"] as $skillId) {
 			$index = array_search($skillId, $tier_one_skills);
 			if ($index !== false) {
 				unset($tier_one_skills[$index]);
@@ -145,7 +135,7 @@ function ShuffleMonsterSkills($rom) {
 		}
 	}
   
-	for ($i = 0; $i < $monster_count; $i++)
+	for ($i = 0; $i < $rom->map["monsters"]["count"]; $i++)
 	{
 		if ($Flags["Skills"] != "None")
 		{
@@ -173,20 +163,17 @@ function ShuffleMonsterSkills($rom) {
 function ShuffleEncounters($rom) {
 	global $Flags;
 	
-	global $encounter_count;
-	global $magicValues;
-	
 	//Code patch: Reduce level of SpikyBoys in Oasis to 1 so that they level faster
 	$rom->data[0xD00CC] = chr(0x01);
 
-	for ($i = 0; $i < $encounter_count; $i++)
+	for ($i = 0; $i < $rom->map["encounters"]["count"]; $i++)
 	{
 		//Which monster is this?
 		if($i == 0 && $Flags["StartingMonster"] != 0){
 			//Allow the starting monster to be selectable
 			$monsterid = $Flags["StartingMonster"];
 		}
-		elseif($i == $magicValues["HoodSquid Drop Encounter"]){
+		elseif($i == $rom->magicValues["HoodSquid Drop Encounter"]){
 			//Special case: The hoodsquid needs to be a water-type. (0x13C - 0x15B, 32 monsters)
 			//TODO: Yeti Mode won't put a yeti here ):
 			$monsterid = Random() % 32 + 0x13C;
@@ -343,7 +330,7 @@ function ShuffleEncounters($rom) {
 			$rom->setEncounterByte($i, 2 + $j, $return_skill);
 		}
 		//Hoodsquid should always know LureDance as its fourth move
-		if($i == $magicValues["HoodSquid Drop Encounter"]){
+		if($i == $rom->magicValues["HoodSquid Drop Encounter"]){
 			$rom->setEncounterByte($i, 4, $rom->skillIDsByName["LureDance"]);
 		}
 		
