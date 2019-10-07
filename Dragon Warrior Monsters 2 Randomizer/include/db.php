@@ -6,7 +6,6 @@ $dbpass = 'PASSWORD';
 $dbname = 'dragonquestmonsters';
 
 // dbsettings.php overwrites the four $db variables, forces SSL, and turns off error reporting
-// ...and possibly overwrites other things from above. I don't know. Do what you want in there.
 require_once('config/dbsettings.php');
 
 $db = mysqli_connect($dbaddress,$dbuser,$dbpass);
@@ -15,7 +14,7 @@ $dbreturn = '';
 //echo 'Database initialized.<br>';
 
 //Sends a query to the database.  Return value is stored in dbreturn.
-function execute($query){
+function executeQuery($query){
 	global $dbreturn;
 	global $db;
 	$dbreturn = mysqli_query($db,$query);
