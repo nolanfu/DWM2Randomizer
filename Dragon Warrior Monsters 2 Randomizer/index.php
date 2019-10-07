@@ -96,6 +96,12 @@ $encounter_count = $first_bank_encounter_count + $second_bank_encounter_count;
 $monster_data_length = 47;
 $first_monster_byte = 0xD436A;
 $monster_count = 323;
+$item_strings_start = 0x224E3;
+$item_strings_count = 91;
+$item_behavior_start = 0x58CC2;
+$item_behavior_count = 99;
+$item_behavior_length = 13;
+
 $magicValues = array(
 	'HoodSquid Drop Encounter' => 26,
 
@@ -386,28 +392,46 @@ function swap($firstAddress, $secondAddress)
 	$romData[$firstAddress] = $holdAddress;
 }
 
-function getMonsterByte($i, $offset)
-{
+function getByte($offset) {
 	global $romData;
+	return ord($romData[$offset]);
+}
+
+function getWord($offset) {
+	global $romData;
+	return ord($romData[$offset]) + ord($romData[$offset + 1])*256;
+}
+
+function setByte($offset, $value) {
+	global $romData;
+	$romData[$offset] = chr(floor($value % 256));
+}
+
+function setWord($offset, $value) {
+	global $romData;
+	$romData[$offset] = chr(floor($value % 256));
+	$romData[$offset + 1] = chr(floor(($value / 256) % 256));
+}
+
+function calcMonsterOffset($i, $offset) {
 	global $first_monster_byte;
 	global $monster_data_length;
-	return ord($romData[$first_monster_byte + $i * $monster_data_length + $offset]);
+	return $first_monster_byte + $i * $monster_data_length + $offset;
+}
+
+function getMonsterByte($i, $offset)
+{
+	return getByte(calcMonsterOffset($i, $offset));
 }
 
 function getMonsterWord($i, $offset)
 {
-	global $romData;
-	global $first_monster_byte;
-	global $monster_data_length;
-	return ord($romData[$first_monster_byte + $i * $monster_data_length + $offset]) + ord($romData[$first_monster_byte + $i * $monster_data_length + $offset + 1])*256;
+	return getWord(calcMonsterOffset($i, $offset));
 }
 
 function setMonsterByte($i, $offset, $value)
 {
-	global $romData;
-	global $first_monster_byte;
-	global $monster_data_length;
-	$romData[$first_monster_byte + $i * $monster_data_length + $offset] = chr(floor($value % 256));
+	return setByte(calcMonsterOffset($i, $offset), $value);
 }
 
 function calcEncounterOffset($i, $offset) {
@@ -424,32 +448,26 @@ function calcEncounterOffset($i, $offset) {
 
 function getEncounterByte($i, $offset)
 {
-	global $romData;
-	return ord($romData[calcEncounterOffset($i, $offset)]);
+	return getByte(calcEncounterOffset($i, $offset));
 }
 
 function getEncounterWord($i, $offset)
 {
-	global $romData;
-	return ord($romData[calcEncounterOffset($i, $offset)]) + ord($romData[calcEncounterOffset($i, $offset) + 1])*256;
+	return getWord(calcEncounterOffset($i, $offset));
 }
 
 function setEncounterByte($i, $offset, $value)
 {
-	global $romData;
-	$romData[calcEncounterOffset($i, $offset)] = chr(floor($value % 256));
+	return setByte(calcEncounterOffset($i, $offset), $value);
 }
 
 function setEncounterWord($i, $offset, $value)
 {
-	global $romData;
-	$romData[calcEncounterOffset($i, $offset)] = chr(floor($value % 256));
-	$romData[calcEncounterOffset($i, $offset) + 1] = chr(floor($value / 256));
+	return setWord(calcEncounterOffset($i, $offset), $value);
 }
 
 function swapEncounterBytes($i, $offset_a, $offset_b)
 {
-	global $romData;
 	swap(calcEncounterOffset($i, $offset_a), calcEncounterOffset($i, $offset_b));
 }
 
@@ -491,20 +509,30 @@ function RomDump(){
 	global $romData;
 	global $localRomDirectory;
 
-	$outfilename = $localRomDirectory.'romdump100.txt';
+	$outfilename = $localRomDirectory.'romdump100_w_text.txt';
 	$outfile = fopen($outfilename, "w");
 	
-	$str = '';
+	$line = '0x000000  ';
+	$hex = "";
+	$str = "";
 	for($i = 0; $i < strlen($romData); $i++){
-		if(strlen(dechex(ord($romData[$i]))) == 1){
-			$str .= '0';
+		$byte = getByte($i);
+		$hex .= str_pad(dechex($byte), 2, '0', STR_PAD_LEFT) . ' ';
+		if ($byte >= 10 && $byte < 36) {
+			$str .= chr(ord('A') + ($byte - 10));
+		} elseif ($byte >= 36 && $byte < 62) {
+			$str .= chr(ord('a') + ($byte - 36));
+		} elseif ($byte == 0x90) {
+			$str .= ' ';
+		} elseif ($byte < 10) {
+			$str .= chr(ord('0') + $byte);
+		} else {
+			$str .= '.';
 		}
-		if(strlen(dechex(ord($romData[$i]))) == 0){
-			$str .= '00';
-		}
-		$str .= dechex(ord($romData[$i]));
-		if($i % 100 == 99){
-			fwrite($outfile,$str."\n");
+		if($i % 64 == 63){
+			fwrite($outfile,$line . $str . '   ' . $hex."\n");
+			$line = '0x' . str_pad(dechex($i + 1), 6, '0', STR_PAD_LEFT) . '  ';
+			$hex = '';
 			$str = '';
 		}
 	}
@@ -548,6 +576,9 @@ function RomTextDump(){
 function RomStructuredDataDump() {
 	RomEncounterDump();
 	RomMonsterDump();
+	RomItemStringsDump();
+	RomItemBehaviorDump();
+	RomBank33Dump();
 }
 
 function RomRawEncounterDump() {
@@ -713,6 +744,129 @@ function RomMonsterDump() {
 
 		fwrite($outfile,$str."\n");
 	}
+	fclose($outfile);
+}
+
+function RomItemStringsDump() {
+	global $romData;
+	global $item_strings_start;
+	global $item_strings_count;
+	global $localRomDirectory;
+	
+	$outfilename = $localRomDirectory.'rom_strings_dump.txt';
+	$outfile = fopen($outfilename, "w");
+	$str = "";
+	$hex = "";
+	$counter = 0;
+	for ($i = 0; $i < 1000; $i++) {
+		$byte = ord($romData[$item_strings_start + $i]);
+		$hex .= str_pad(dechex($byte), 2, '0', STR_PAD_LEFT) . ' ';
+		if ($byte == 0xf0) {
+			fwrite($outfile,str_pad($str, 18, ' ') . $hex . "\n");
+			$str = "";
+			$hex = "";
+			$counter += 1;
+			if ($counter >= $item_strings_count) {
+				break;
+			}
+		} elseif ($byte >= 10 && $byte < 36) {
+			$str .= chr(ord('A') + ($byte - 10));
+		} elseif ($byte >= 36 && $byte < 62) {
+			$str .= chr(ord('a') + ($byte - 36));
+		} elseif ($byte < 10) {
+			$str .= chr(ord('0') + $byte);
+		} else {
+			$str .= '.';
+		}
+	}
+	fclose($outfile);
+}
+
+function RomItemBehaviorDump() {
+	global $item_behavior_start;
+	global $item_behavior_count;
+	global $item_behavior_length;
+	global $localRomDirectory;
+	
+	$outfilename = $localRomDirectory.'rom_items_dump.txt';
+	$outfile = fopen($outfilename, "w");
+	$str = "Row     Type Price  ? Use  ? Target Icon  ? F1 F2 V1 V2 ";
+	fwrite($outfile,$str . "\n");
+	$str = "Offset:    0   1-2  3   4  5      6    7  8  9 10 11 12 ";
+	fwrite($outfile,$str . "\n");
+	$str = "------------------------------------------------------- ";
+	fwrite($outfile,$str . "\n");
+	
+	for ($i = 0; $i < $item_behavior_count; $i++) {
+		$str = "";
+		$str .= str_pad($i, 6, ' ', STR_PAD_LEFT) . '  ';
+		$str .= str_pad(getByte($item_behavior_start + $i * $item_behavior_length + 0), 4, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(getWord($item_behavior_start + $i * $item_behavior_length + 1), 5, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex(getByte($item_behavior_start + $i * $item_behavior_length + 3)), 2, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex(getByte($item_behavior_start + $i * $item_behavior_length + 4)), 3, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex(getByte($item_behavior_start + $i * $item_behavior_length + 5)), 2, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex(getByte($item_behavior_start + $i * $item_behavior_length + 6)), 6, ' ', STR_PAD_LEFT) . ' ';
+		$str .= str_pad(dechex(getByte($item_behavior_start + $i * $item_behavior_length + 7)), 4, ' ', STR_PAD_LEFT) . ' ';
+		for ($j = 8; $j <= 12; $j++) {
+			$str .= str_pad(dechex(getByte($item_behavior_start + $i * $item_behavior_length + $j)), 2, '0', STR_PAD_LEFT) . ' ';
+		}
+		fwrite($outfile,$str . "\n");
+	}
+	fclose($outfile);
+}
+
+function RomDumpStrings($outfile, $start, $end) {
+	$str = '';
+	for ($i = $start; $i <= $end; $i++) {
+		$byte = getByte($i);
+		if ($byte == 0xf0) {
+			fwrite($outfile, $str . "\n");
+			$str = '';
+		} elseif ($byte >= 10 && $byte < 36) {
+			$str .= chr(ord('A') + ($byte - 10));
+		} elseif ($byte >= 36 && $byte < 62) {
+			$str .= chr(ord('a') + ($byte - 36));
+		} elseif ($byte == 0x90) {
+			$str .= ' ';
+		} elseif ($byte < 10) {
+			$str .= chr(ord('0') + $byte);
+		} else {
+			$str .= '.';
+		}
+	}
+}
+
+function RomBank33Dump() {
+	global $localRomDirectory;
+	$outfilename = $localRomDirectory.'rom_bank_33_dump.txt';
+	$outfile = fopen($outfilename, "w");
+	fwrite($outfile, "Bank 0x33 (0x0CC000 - 0x0CFFFF): Dialog box / window structure, arena text\n\n");
+	fwrite($outfile, "Dialog box / window structures\n");
+	$counter = 0;
+	$i = 0xCC0C5;
+	while ($i <= 0xCD1C5) {
+		$str = "Offset " . $counter . ":\n";
+		$flag1 = getByte($i); $str .= str_pad(dechex($flag1), 2, '0', STR_PAD_LEFT) . ' '; $i += 1;
+		$flag2 = getByte($i); $str .= str_pad(dechex($flag2), 2, '0', STR_PAD_LEFT) . ' '; $i += 1;
+		$width = getByte($i); $str .= str_pad($width, 2, ' ', STR_PAD_LEFT) . ' '; $i += 1;
+		$height = getByte($i); $str .= str_pad($height, 2, ' ', STR_PAD_LEFT) . ' '; $i += 1;
+		fwrite($outfile, $str."\n");
+		for ($j = 0; $j < $height; $j++) {
+			$str = "";
+			for ($k = 0; $k < $width; $k++) {
+				$str .= str_pad(dechex(getByte($i + $j * $width + $k)), 2, '0', STR_PAD_LEFT) . ' ';
+			}
+			fwrite($outfile, $str."\n");
+		}
+		$i += $height * $width;
+		$counter += 1;
+		fwrite($outfile, "\n");
+	}
+	
+	fwrite($outfile, "\n\nArena Attendant strings:\n");
+	RomDumpStrings($outfile, 0xCE515, 0xCF036);
+	fwrite($outfile, "\n\nPvP combat / trade strings:\n");
+	RomDumpStrings($outfile, 0xCF074, 0xCF1EF);
 	fclose($outfile);
 }
 
