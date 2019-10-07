@@ -12,17 +12,7 @@ function RomDump($rom){
 	for($i = 0; $i < strlen($rom->data); $i++){
 		$byte = $rom->getByte($i);
 		$hex .= str_pad(dechex($byte), 2, '0', STR_PAD_LEFT) . ' ';
-		if ($byte >= 10 && $byte < 36) {
-			$str .= chr(ord('A') + ($byte - 10));
-		} elseif ($byte >= 36 && $byte < 62) {
-			$str .= chr(ord('a') + ($byte - 36));
-		} elseif ($byte == 0x90) {
-			$str .= ' ';
-		} elseif ($byte < 10) {
-			$str .= chr(ord('0') + $byte);
-		} else {
-			$str .= '.';
-		}
+		$str .= byteToAscii($byte);
 		if($i % 64 == 63){
 			fwrite($outfile,$line . $str . '   ' . $hex."\n");
 			$line = '0x' . str_pad(dechex($i + 1), 6, '0', STR_PAD_LEFT) . '  ';
@@ -44,18 +34,8 @@ function RomTextDump($rom){
 		
 		$str = '';
 		for($i = strlen($rom->data)/$files_to_create*$j; $i < strlen($rom->data)/$files_to_create*($j+1); $i++){
-			if((ord($rom->data[$i]) >= 0x24) && (ord($rom->data[$i]) < (0x24 + 26))){
-				$str .= chr(ord($rom->data[$i]) - 0x24 + ord('a'));
-			}
-			elseif((ord($rom->data[$i]) >= 0x0A) && (ord($rom->data[$i]) < (0x0A + 26))){
-				$str .= chr(ord($rom->data[$i]) - 0x0A + ord('A'));
-			}
-			elseif((ord($rom->data[$i]) >= 0) && (ord($rom->data[$i]) < 0x10)){
-				$str .= chr(ord($rom->data[$i]) + ord('0'));
-			}
-			else{
-				$str .= ' ';
-			}
+			$byte = $rom->data[$i];
+			$str .= byteToAscii($byte);
 			if($i % 100 == 99){
 				$str .= "\n";
 			}
@@ -235,14 +215,8 @@ function RomItemStringsDump($rom) {
 			if ($counter >= $rom->map["item_strings"]["count"]) {
 				break;
 			}
-		} elseif ($byte >= 10 && $byte < 36) {
-			$str .= chr(ord('A') + ($byte - 10));
-		} elseif ($byte >= 36 && $byte < 62) {
-			$str .= chr(ord('a') + ($byte - 36));
-		} elseif ($byte < 10) {
-			$str .= chr(ord('0') + $byte);
 		} else {
-			$str .= '.';
+			$str .= byteToAscii($byte);
 		}
 	}
 	fclose($outfile);
@@ -283,17 +257,23 @@ function romDumpStrings($rom, $outfile, $start, $end) {
 		if ($byte == 0xf0) {
 			fwrite($outfile, $str . "\n");
 			$str = '';
-		} elseif ($byte >= 10 && $byte < 36) {
-			$str .= chr(ord('A') + ($byte - 10));
-		} elseif ($byte >= 36 && $byte < 62) {
-			$str .= chr(ord('a') + ($byte - 36));
-		} elseif ($byte == 0x90) {
-			$str .= ' ';
-		} elseif ($byte < 10) {
-			$str .= chr(ord('0') + $byte);
 		} else {
-			$str .= '.';
+			$str .= byteToAscii($byte);
 		}
+	}
+}
+
+function byteToAscii($byte) {
+	if ($byte >= 10 && $byte < 36) {
+		return chr(ord('A') + ($byte - 10));
+	} elseif ($byte >= 36 && $byte < 62) {
+		return chr(ord('a') + ($byte - 36));
+	} elseif ($byte == 0x90) {
+		return ' ';
+	} elseif ($byte < 10) {
+		return chr(ord('0') + $byte);
+	} else {
+		return '.';
 	}
 }
 
