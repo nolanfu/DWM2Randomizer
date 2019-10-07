@@ -1,0 +1,12 @@
+form > .container-fluid{
+	border-left:2px solid #ccc;
+	border-top:2px solid #ccc;
+}
+form > .container-fluid > .row{
+	border-right:2px solid #ccc;
+	border-bottom:2px solid #ccc;
+}
+
+form .row b {
+	color: #F33;
+}
