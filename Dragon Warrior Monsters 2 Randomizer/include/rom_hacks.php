@@ -1,7 +1,6 @@
 <?php
 
-function ShuffleMonsterGrowth($rom)
-{
+function ShuffleMonsterGrowth($rom) {
 	global $Flags;
 	global $monster_count;
 
@@ -68,10 +67,7 @@ function ShuffleMonsterGrowth($rom)
 	return true;
 }
 
-
-
-function ShuffleMonsterResistances($rom)
-{
+function ShuffleMonsterResistances($rom) {
 	global $Flags;
 	
 	global $monster_count;
@@ -125,19 +121,16 @@ function ShuffleMonsterResistances($rom)
 	return true;
 }
 
-
-function ShuffleMonsterSkills($rom)
-{
+function ShuffleMonsterSkills($rom) {
 	global $Flags;
 	global $monster_count;
 	global $magicValues;
-	global $SkillIDsByName;
 
 	$tier_one_skills = array( 1, 4, 7, 10, 13, 16, 19, 21, 22, 25, 27, 30, 32, 33, 34, 35, 36, 37, 39, 41, 43, 45, 46, 47, 49, 51, 52, 53, 54, 56, 57, 58, 60, 61, 62, 63, 64, 68, 72, 74, 75, 76, 78, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 137, 138, 139, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 153, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169 );
 
 	// Remove BeDragon unless we've specifically asked to keep it.
 	if ($Flags["Skills"] != "Random With BeDragon") {
-		$index = array_search($SkillIDsByName["BeDragon"], $tier_one_skills);
+		$index = array_search($rom->skillIDsByName["BeDragon"], $tier_one_skills);
 		if ($index !== false) {
 			unset($tier_one_skills[$index]);
 		}
@@ -177,13 +170,9 @@ function ShuffleMonsterSkills($rom)
 	return true;
 }
 
-function ShuffleEncounters($rom)
-{
+function ShuffleEncounters($rom) {
 	global $Flags;
 	
-	global $ValidMonsterIDs;
-	global $ValidMonsterGrowthIndecies;
-	global $MonsterIDsByName;
 	global $encounter_count;
 	global $magicValues;
 	
@@ -201,17 +190,19 @@ function ShuffleEncounters($rom)
 			//Special case: The hoodsquid needs to be a water-type. (0x13C - 0x15B, 32 monsters)
 			//TODO: Yeti Mode won't put a yeti here ):
 			$monsterid = Random() % 32 + 0x13C;
-		}else{
-			$monsterid = $ValidMonsterIDs[Random() % count($ValidMonsterIDs)];
+		} else if ($Flags["YetiMode"] == "On") {
+			$monsterid = $rom->monsterIDsByName["Yeti"];
+		} else {
+			$monsterid = $rom->allowedMonsterIDs[Random() % count($rom->allowedMonsterIDs)];
 		}
-		$MonsterGrowthIndex = array_search($monsterid,$ValidMonsterGrowthIndecies);
+		$MonsterGrowthIndex = array_search($monsterid,$rom->monsterGrowthStatsIndex);
 		
 		//Should probably choose monster independently of the rest of this.
 		if($Flags["Encounters"] == "Poorly") //Previously "Based On Growth"
 		{
 			
 			//Need to ensure Army Ant/Madgopher are obtainable before Ice.
-			if($rom->getEncounterWord($i, 0) != $MonsterIDsByName["MadGopher"] && $rom->getEncounterWord($i, 0) != $MonsterIDsByName["ArmyAnt"]){
+			if($rom->getEncounterWord($i, 0) != $rom->monsterIDsByName["MadGopher"] && $rom->getEncounterWord($i, 0) != $rom->monsterIDsByName["ArmyAnt"]){
 				$rom->setEncounterWord($i, 0, $monsterid);
 			}
 			
@@ -353,7 +344,7 @@ function ShuffleEncounters($rom)
 		}
 		//Hoodsquid should always know LureDance as its fourth move
 		if($i == $magicValues["HoodSquid Drop Encounter"]){
-			$rom->setEncounterByte($i, 4, $SkillIDsByName["LureDance"]);
+			$rom->setEncounterByte($i, 4, $rom->skillIDsByName["LureDance"]);
 		}
 		
 		//Swap empty moves to the back.  Just gonna "brute force" a bubble sort; could be more efficient but it's nine swaps max so whatever.
@@ -383,7 +374,7 @@ function ShuffleEncounters($rom)
 	return true;
 }
 
-function CodePatches($rom){
+function CodePatches($rom) {
 	//Wherever "clear water" is mentioned, write "tonic" over the word "water"
 	//TODO: Find more of these; Bizhawk's text search is glitchy.  Do a text dump?
 	$rom->writeText(0x266624, "tonic");

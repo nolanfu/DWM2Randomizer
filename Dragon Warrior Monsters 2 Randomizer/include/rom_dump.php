@@ -107,7 +107,6 @@ function RomEncounterDump($rom) {
 	// 22-25     4x1      Personality Traits / Motivation
 	global $encounter_data_length;
 	global $encounter_count;
-	global $MonsterNames;
 
 	$outfilename = Rom::$localRomDirectory.'rom_encounter_dump.txt';
 	$outfile = fopen($outfilename, "w");
@@ -122,7 +121,7 @@ function RomEncounterDump($rom) {
 		$str .= str_pad($i, 3, ' ', STR_PAD_LEFT) . '     ';
 		$monster_id = $rom->getEncounterWord($i, 0);
 		$str .= str_pad($monster_id, 3, ' ', STR_PAD_LEFT) . ' ';
-		$str .= str_pad($MonsterNames[$monster_id], 10, ' ') . ' ';
+		$str .= str_pad((array_key_exists($monster_id, $rom->monsterNames) ? $rom->monsterNames[$monster_id] : ""), 10, ' ') . ' ';
 		$str .= ($rom->isArenaEncounter($i) ? 'Arna' : ($rom->isBossEncounter($i) ? 'Boss' : ($rom->isBossRecruit($i) ? 'Recr' : '    '))) . ' ';
 		for ($j = 2; $j <= 5; $j++) {
 			$str .= str_pad(dechex($rom->getEncounterByte($i, $j)), 2, '0', STR_PAD_LEFT) . ' ';
@@ -176,8 +175,6 @@ function RomMonsterDump($rom) {
 	// 45-46     2        Base EXP value on kill for random key worlds
 	global $monster_data_length;
 	global $monster_count;
-	global $ValidMonsterGrowthIndecies;
-	global $MonsterNames;
 
 	$outfilename = Rom::$localRomDirectory.'rom_monster_dump.txt';
 	$outfile = fopen($outfilename, "w");
@@ -192,9 +189,9 @@ function RomMonsterDump($rom) {
 	for ($i = 0; $i < $monster_count; $i++) {
 		$str = "";
 		$str .= str_pad($i, 7, ' ', STR_PAD_LEFT) . ' ';
-		$monster_id = $ValidMonsterGrowthIndecies[$i];
+		$monster_id = (array_key_exists($i, $rom->monsterGrowthStatsIndex) ? $rom->monsterGrowthStatsIndex[$i] : "");
 		$str .= str_pad($monster_id, 3, ' ', STR_PAD_LEFT) . ' ';
-		$str .= str_pad($MonsterNames[$monster_id], 10, ' ') . ' ';
+		$str .= str_pad((array_key_exists($monster_id, $rom->monsterNames) ? $rom->monsterNames[$monster_id] : ""), 10, ' ') . ' ';
 		$str .= str_pad($rom->getMonsterByte($i, 0), 5, ' ', STR_PAD_LEFT) . ' '; // Group
 		$str .= str_pad(dechex($rom->getMonsterByte($i, 1)), 2, '0', STR_PAD_LEFT) . ' ';
 		$str .= ($rom->getMonsterByte($i, 2) == 1 ? "Yes" : "  .") . ' '; // Fly?
@@ -317,7 +314,7 @@ function romDumpStrings($rom, $outfile, $start, $end) {
 	}
 }
 
-function RomBank33Dump() {
+function RomBank33Dump($rom) {
 	$outfilename = Rom::$localRomDirectory.'rom_bank_33_dump.txt';
 	$outfile = fopen($outfilename, "w");
 	fwrite($outfile, "Bank 0x33 (0x0CC000 - 0x0CFFFF): Dialog box / window structure, arena text\n\n");

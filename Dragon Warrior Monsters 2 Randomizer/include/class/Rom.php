@@ -6,7 +6,14 @@ class Rom {
 	public static $localRomOutputName = "DWM2TGA_Random.gbc";
 	public static $loadLocalRom = false;
 	public static $saveLocalRom = false;
+
 	public $data = "";
+	public $monsterNames = array(); // Monster ID -> Name
+	public $monsterIDsByName = array(); // Monster Name -> ID
+	public $skillNames = array(); // Skill ID -> Name
+	public $skillIDsByName = array(); // Skill Name -> ID
+	public $allowedMonsterIDs = array();
+	public $monsterGrowthStatsIndex = array(); //This is the position of the monster in the "growths" list
 
 	function load() {
 		try
@@ -25,7 +32,6 @@ class Rom {
 		}
 		catch (Exception $e)
 		{
-			$error_message = "<br>Empty file name(s) or unable to open files. Please verify the files exist.";
 			return false;
 		}
 		return true;
@@ -49,6 +55,49 @@ class Rom {
 			header("Content-Size: ".strlen($this->data)*512);
 			echo $this->data;
 			die();
+		}
+	}
+
+	function populateMetadata(){
+		$monster_list_query = "SELECT * FROM dragonwarriormonsters2 order by id asc";
+		execute($monster_list_query);
+		$this->monsterNames = array();
+		$this->monsterIDsByName = array();
+		while($monster = get()){
+			$this->monsterNames[$monster["id"]] = $monster["name"];
+			$this->monsterIDsByName[$monster["name"]] = $monster["id"];
+		}
+
+		$skill_list_query = "SELECT * FROM dragonwarriormonsters2_skills order by id asc";
+		execute($skill_list_query);
+		while($skill = get()){
+			$this->skillNames[$skill["id"]] = $skill["Name"];
+			$this->skillIDsByName[$skill["Name"]] = $skill["id"];
+		}
+		
+		//This is the ID stored in the SRAM that determines which monster you have.
+		//It's also used within the table of base-stats for each monster.
+		//NOTE 0x1B is Butch and I don't think he should be used?
+		for ($i = 0; $i <= 0x17E; $i++) {
+			if (
+				($i >= 0x01 && $i <= 0x1B) || //Slimes (0x1B is Butch)
+				($i >= 0x24 && $i <= 0x42) || //Dragons
+				($i >= 0x47 && $i <= 0x66) || //Beasts
+				($i >= 0x6A && $i <= 0x84) || //Birds
+				($i >= 0x8D && $i <= 0xA7) || //Plants
+				($i >= 0xB0 && $i <= 0xC9) || //Bugs
+				($i >= 0xD3 && $i <= 0xF0) || //Devils
+				($i >= 0xF6 && $i <= 0x110) || //Zombies
+				($i >= 0x119 && $i <= 0x138) || //Materials
+				($i >= 0x13C && $i <= 0x15B) || //Waters
+				($i >= 0x15F && $i <= 0x174) //Bosses
+				)
+			{
+				$this->monsterGrowthStatsIndex[] = $i;
+				if ($i != 0x1B) {
+					$this->allowedMonsterIDs[] = $i;
+				}
+			}
 		}
 	}
 
@@ -169,7 +218,7 @@ class Rom {
 		return 0;
 	}
 
-	function isBossRecruit() {
+	function isBossRecruit($i) {
 		// Some of the bosses can be recruited through storyline means, but their recruitable stats
 		// are stored in a different encounter than the actual boss fight.
 		// TODO: Missing some?

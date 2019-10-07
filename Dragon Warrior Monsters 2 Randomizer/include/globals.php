@@ -2,13 +2,6 @@
 
 //TODO: Get rid of globals.
 
-$romData;
-$ValidMonsterIDs = array(); //This is the actual ID number of the monster
-$ValidMonsterGrowthIndecies = array(); //This is the position of the monster in the "growths" list
-$MonsterNames = array(); // Monster ID -> Name
-$MonsterIDsByName = array(); // Monster Name -> ID
-$SkillNames = array(); // Skill ID -> Name
-$SkillIDsByName = array(); // Skill Name -> ID
 $encounter_data_length = 26;
 $first_bank_encounter_start = 0xD0075 + $encounter_data_length;
 $first_bank_encounter_count = 591;
@@ -138,79 +131,5 @@ $FlagSettings = array(
 );
 
 $Flags = array();
-
-function PopulateMetadata(){
-	global $Flags;
-	global $ValidMonsterIDs;
-	global $ValidMonsterGrowthIndecies;
-	global $MonsterNames;
-	global $MonsterIDsByName;
-	global $SkillNames;
-	global $SkillIDsByName;
-	global $magicValues;
-
-	$monster_list_query = "SELECT * FROM dragonwarriormonsters2 order by id asc";
-	execute($monster_list_query);
-	while($monster = get()){
-		$MonsterNames[$monster["id"]] = $monster["name"];
-		$MonsterIDsByName[$monster["name"]] = $monster["id"];
-	}
-
-	$skill_list_query = "SELECT * FROM dragonwarriormonsters2_skills order by id asc";
-	execute($skill_list_query);
-	while($skill = get()){
-		$SkillNames[$skill["id"]] = $skill["Name"];
-		$SkillIdsByName[$skill["Name"]] = $skill["id"];
-	}
-	
-	if($Flags["YetiMode"] == "On"){
-		$ValidMonsterIDs[] = $MonsterIDsByName["Yeti"];
-	}
-	else
-	{
-		//This is the ID stored in the SRAM that determines which monster you have.
-		//It's also used within the table of base-stats for each monster.
-		//NOTE 0x1B is Butch and I don't think he should be used?
-		for ($i = 0; $i <= 0x17E; $i++)
-		{
-			if (
-				($i >= 0x01 && $i <= 0x1A) || //Slimes
-				($i >= 0x24 && $i <= 0x42) || //Dragons
-				($i >= 0x47 && $i <= 0x66) || //Beasts
-				($i >= 0x6A && $i <= 0x84) || //Birds
-				($i >= 0x8D && $i <= 0xA7) || //Plants
-				($i >= 0xB0 && $i <= 0xC9) || //Bugs
-				($i >= 0xD3 && $i <= 0xF0) || //Devils
-				($i >= 0xF6 && $i <= 0x110) || //Zombies
-				($i >= 0x119 && $i <= 0x138) || //Materials
-				($i >= 0x13C && $i <= 0x15B) || //Waters
-				($i >= 0x15F && $i <= 0x174) //Bosses
-				)
-			{
-				$ValidMonsterIDs[] = $i;
-			}
-		}
-	}
-	for ($i = 0; $i <= 0x17E; $i++)
-	{
-		if (
-			($i >= 0x01 && $i <= 0x1B) || //Slimes (0x1B is Butch)
-			($i >= 0x24 && $i <= 0x42) || //Dragons
-			($i >= 0x47 && $i <= 0x66) || //Beasts
-			($i >= 0x6A && $i <= 0x84) || //Birds
-			($i >= 0x8D && $i <= 0xA7) || //Plants
-			($i >= 0xB0 && $i <= 0xC9) || //Bugs
-			($i >= 0xD3 && $i <= 0xF0) || //Devils
-			($i >= 0xF6 && $i <= 0x110) || //Zombies
-			($i >= 0x119 && $i <= 0x138) || //Materials
-			($i >= 0x13C && $i <= 0x15B) || //Waters
-			($i >= 0x15F && $i <= 0x174) //Bosses
-			)
-		{
-			$ValidMonsterGrowthIndecies[] = $i;
-		}
-	}
-}
-
 
 ?>

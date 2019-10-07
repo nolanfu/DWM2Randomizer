@@ -2,16 +2,17 @@
 
 function main()
 {
-	global $romData;
-	
+	global $error_message;
 	parseArguments();
 	$rom = new Rom();
 	
 	if(array_key_exists("Submit",$_REQUEST)){
-		if (!$rom->load())
+		if (!$rom->load()) {
+			$error_message = "<br>Empty file name(s) or unable to open files. Please verify the files exist.";
 			return;
+		}
 
-		PopulateMetadata();
+		$rom->populateMetadata();
 		
 		//Some functions to dump the ROM in hexidecimal or text format
 		//RomStructuredDataDump($rom);
@@ -117,7 +118,7 @@ function flagRadioButtons($name, $label, $options) {
 		foreach ($options as $option) {
 			$id = strtolower($name) . '_' . strtolower($option["value"]);
 ?>
-			<div class="col-sm"><input type="radio" name="<?php echo $name ?>" value="<?php echo $option["value"] ?>" id="<?php echo $id ?>" <?php echo $Flags[$name] == $option["value"] ? 'checked' : '' ?> /> <label for="<?php echo $id ?>" title="<?php echo $option["description"] ?>"><?php echo $option["label"] ? $option["label"] : $option["value"] ?></label></div>
+			<div class="col-sm"><input type="radio" name="<?php echo $name ?>" value="<?php echo $option["value"] ?>" id="<?php echo $id ?>" <?php echo $Flags[$name] == $option["value"] ? 'checked' : '' ?> /> <label for="<?php echo $id ?>" title="<?php echo $option["description"] ?>"><?php echo (array_key_exists("label", $option) ? $option["label"] : $option["value"]) ?></label></div>
 <?php
 		}
 ?>
