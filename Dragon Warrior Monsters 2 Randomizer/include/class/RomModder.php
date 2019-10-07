@@ -138,8 +138,19 @@ class RomModder {
 		return true;
 	}
 
+	function tierOneSkillIDs() {
+		return array( 1, 4, 7, 10, 13, 16, 19, 21, 22, 25, 27, 30, 32, 33, 34, 35, 36, 37, 39, 41, 43, 45, 46, 47, 49, 51, 52, 53, 54, 56, 57, 58, 60, 61, 62, 63, 64, 68, 72, 74, 75, 76, 78, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 137, 138, 139, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 153, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169 );
+		$query = "SELECT id FROM dragonwarriormonsters2_skills WHERE Tier = 1 ORDER BY id;";
+		executeQuery($query);
+		$result = array();
+		while ($row = get()) {
+			$result[] = $row["id"];
+		}
+		return $result;
+	}
+
 	function shuffleMonsterSkills($rom) {
-		$tier_one_skills = array( 1, 4, 7, 10, 13, 16, 19, 21, 22, 25, 27, 30, 32, 33, 34, 35, 36, 37, 39, 41, 43, 45, 46, 47, 49, 51, 52, 53, 54, 56, 57, 58, 60, 61, 62, 63, 64, 68, 72, 74, 75, 76, 78, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 137, 138, 139, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 153, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169 );
+		$tier_one_skills = $this->tierOneSkillIDs();
 
 		// Remove BeDragon unless we've specifically asked to keep it.
 		if ($this->flags["Skills"] != "Random With BeDragon") {
@@ -331,7 +342,7 @@ class RomModder {
 				while(true){
 					//"Skill" is the ID of the skill we're trying to learn.
 					$skill_qry = "select * from dragonwarriormonsters2_skills where id = ".$skill." and lv <= ".$lv." and hp <= ".$hp." and mp <= ".$mp." and atk <= ".$atk." and def <= ".$def." and agl <= ".$agl." and `int` <= ".$int;
-					execute($skill_qry);
+					executeQuery($skill_qry);
 					$result = get();
 					if(count($result) !== 0){
 						//If we can learn this skill, plug it into return_skill

@@ -157,7 +157,7 @@ class UIController {
 	function recordAnalytics() {
 		//Logging IP address, user agent, flags, seed, and current time.
 		//Is your user agent any of my business?  Not really, but don't worry about it.
-		execute("
+		executeQuery("
 			INSERT INTO dwm2r_activitymonitor
 			(IPAddress,UserAgent,Flags,Seed,CreatedDTS)
 			VALUES (
@@ -247,7 +247,7 @@ class UIController {
 					<option value="0">Random</option>
 					<?php
 						$monster_list_query = "SELECT * FROM dragonwarriormonsters2 order by id asc";
-						execute($monster_list_query);
+						executeQuery($monster_list_query);
 						while($monster = get()){
 					?>
 					<option value="<?php echo $monster["id"]; ?>" <?php echo $this->modder->flags['StartingMonster'] == $monster["id"] ? 'selected' : '' ?>><?php echo $monster["name"]; ?></option>

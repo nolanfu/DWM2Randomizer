@@ -104,7 +104,7 @@ class Rom {
 
 	function populateMetadata(){
 		$monster_list_query = "SELECT * FROM dragonwarriormonsters2 order by id asc";
-		execute($monster_list_query);
+		executeQuery($monster_list_query);
 		$this->monsterNames = array();
 		$this->monsterIDsByName = array();
 		while($monster = get()){
@@ -113,7 +113,7 @@ class Rom {
 		}
 
 		$skill_list_query = "SELECT * FROM dragonwarriormonsters2_skills order by id asc";
-		execute($skill_list_query);
+		executeQuery($skill_list_query);
 		while($skill = get()){
 			$this->skillNames[$skill["id"]] = $skill["Name"];
 			$this->skillIDsByName[$skill["Name"]] = $skill["id"];
