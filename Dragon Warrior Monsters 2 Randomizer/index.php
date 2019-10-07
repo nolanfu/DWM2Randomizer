@@ -4,15 +4,15 @@
 
 require_once("include/db.php");
 require_once("include/globals.php");
-require_once("include/random.php");
 require_once("include/class/Rom.php");
+require_once("include/class/RandomGenerator.php");
+require_once("include/class/RomModder.php");
 require_once("include/rom_dump.php");
-require_once("include/rom_hacks.php");
 require_once("include/ui.php");
 
 include_once("config/settings.php");
 
-main();
+$modder = main();
 
 ?>
 <html>
@@ -25,7 +25,7 @@ main();
 </head>
 <body>
 
-<?php drawForm(); ?>
+<?php drawForm($modder); ?>
 
 </body>
 </html>

@@ -103,6 +103,4 @@ $FlagSettings = array(
 	),
 );
 
-$Flags = array();
-
 ?>

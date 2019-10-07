@@ -1,13 +1,14 @@
 <?php
 
-function main()
-{
+function main() {
+	global $error;
 	global $error_message;
-	parseArguments();
 	$rom = new Rom();
+	$modder = modderFromArguments();
 	
 	if(array_key_exists("Submit",$_REQUEST)){
 		if (!$rom->load()) {
+			$error = true;
 			$error_message = "<br>Empty file name(s) or unable to open files. Please verify the files exist.";
 			return;
 		}
@@ -20,80 +21,41 @@ function main()
 		//RomTextDump($rom);
 		//die();
 		if($rom->isLoaded()){
-			hackRom($rom);
+			$modder->apply($rom);
+			Analytics($modder);
 			$rom->save();
 		}
 	}
+	return $modder;
 }
 
-function parseArguments() {
-	global $Flags;
+function modderFromArguments() {
 	global $FlagSettings;
-	global $initial_seed;
 
+	$flags = array();
 	if(array_key_exists("StartingMonster",$_REQUEST)){
-		$Flags["StartingMonster"] = trim($_REQUEST["StartingMonster"]);
+		$flags["StartingMonster"] = trim($_REQUEST["StartingMonster"]);
 	}else{
-		$Flags["StartingMonster"] = 0;
+		$flags["StartingMonster"] = 0;
 	}
 	foreach ($FlagSettings as $name => $settings) {
 		if(array_key_exists("default", $settings)) {
 			if(array_key_exists($name,$_REQUEST)) {
-				$Flags[$name] = trim($_REQUEST[$name]);
+				$flags[$name] = trim($_REQUEST[$name]);
 			}else{
-				$Flags[$name] = $settings["default"];
+				$flags[$name] = $settings["default"];
 			}
 		}
 	}
 	if(array_key_exists("Seed",$_REQUEST)){
-		$Flags["Seed"] = trim($_REQUEST["Seed"]);
+		$flags["Seed"] = trim($_REQUEST["Seed"]);
 	}else{
-		$Flags["Seed"] = 0;
+		$flags["Seed"] = 0;
 	}
-	$initial_seed = $Flags["Seed"];
+	return new RomModder($flags, $flags["Seed"]);
 }
 
-function hackRom($rom)
-{
-	//This function checks the selected flags and determines which randomization subroutines to run
-	
-	//First, let's seed the random number generator.  We're using DW3's generator, which uses three variables.
-	global $counter;
-	global $seed;
-	global $discard;
-	global $initial_seed;
-	global $flags;
-	$tmp_seed = $initial_seed;
-	
-	$counter = $tmp_seed % 256;
-	$tmp_seed = floor($tmp_seed / 256);
-	$seed = $tmp_seed % 65536;
-	$tmp_seed = floor($tmp_seed / 65536);
-	$discard = $tmp_seed % 16;
-	
-	for($j = 0; $j < $flags["StartingMonster"]; $j++){
-		//Burn random numbers to make monster choice affect the randomization.
-		//TODO: Should all flags do this?
-		Random();
-	}
-	
-	ShuffleMonsterGrowth($rom);
-	ShuffleMonsterResistances($rom);
-	ShuffleMonsterSkills($rom);
-	ShuffleEncounters($rom);
-	CodePatches($rom);
-	Analytics();
-	
-	return true;
-}
-
-
-function Analytics()
-{
-	//This function logs intrusive analytical data so I can see how often this randomizer gets played
-	global $initial_seed;
-	global $flags;
-	
+function Analytics($modder) {
 	//Logging IP address, user agent, flags, seed, and current time.
 	//Is your user agent any of my business?  Not really, but don't worry about it.
 	execute("
@@ -103,14 +65,13 @@ function Analytics()
 			'".$_SERVER['REMOTE_ADDR']."',
 			'".$_SERVER['HTTP_USER_AGENT']."',
 			'".trim($_REQUEST["Flags"])."',
-			'".$initial_seed."',
+			'".$modder->flags["Seed"]."',
 			NOW()
 		)
 	");
 }
 
-function flagRadioButtons($name, $label, $options) {
-	global $Flags;
+function flagRadioButtons($name, $currentValue, $label, $options) {
 ?>
 	<div class="row">
 		<div class="col-sm"><?php echo $label ?></div>
@@ -118,7 +79,7 @@ function flagRadioButtons($name, $label, $options) {
 		foreach ($options as $option) {
 			$id = strtolower($name) . '_' . strtolower($option["value"]);
 ?>
-			<div class="col-sm"><input type="radio" name="<?php echo $name ?>" value="<?php echo $option["value"] ?>" id="<?php echo $id ?>" <?php echo $Flags[$name] == $option["value"] ? 'checked' : '' ?> /> <label for="<?php echo $id ?>" title="<?php echo $option["description"] ?>"><?php echo (array_key_exists("label", $option) ? $option["label"] : $option["value"]) ?></label></div>
+			<div class="col-sm"><input type="radio" name="<?php echo $name ?>" value="<?php echo $option["value"] ?>" id="<?php echo $id ?>" <?php echo $currentValue == $option["value"] ? 'checked' : '' ?> /> <label for="<?php echo $id ?>" title="<?php echo $option["description"] ?>"><?php echo (array_key_exists("label", $option) ? $option["label"] : $option["value"]) ?></label></div>
 <?php
 		}
 ?>
@@ -126,8 +87,7 @@ function flagRadioButtons($name, $label, $options) {
 <?php
 }
 
-function drawForm() {
-	global $Flags;
+function drawForm($modder) {
 	global $FlagSettings;
 ?>
 <form action="index.php" method="POST" enctype="multipart/form-data">
@@ -139,7 +99,7 @@ function drawForm() {
 		<div class="col-sm"><label for="flags_input">Flags:</label></div>
 		<div class="col-sm"><input type="text" name="Flags" value="" id="flags_input" size=15 /></div>
 		<div class="col-sm"><label for="seed_input">Seed:</label></div>
-		<div class="col-sm"><input type="text" name="Seed" value="<?php echo $Flags['Seed'] ?>" id="seed_input" size=10 /></div>
+		<div class="col-sm"><input type="text" name="Seed" value="<?php echo $modder->flags['Seed'] ?>" id="seed_input" size=10 /></div>
 		<div class="col-sm"><input type="button" name="NewSeedBtn" value="New Seed" id="NewSeedBtn" /></div>
 	</div>
 	<div class="row">
@@ -156,7 +116,7 @@ function drawForm() {
 					execute($monster_list_query);
 					while($monster = get()){
 				?>
-				<option value="<?php echo $monster["id"]; ?>" <?php echo $Flags['StartingMonster'] == $monster["id"] ? 'selected' : '' ?>><?php echo $monster["name"]; ?></option>
+				<option value="<?php echo $monster["id"]; ?>" <?php echo $modder->flags['StartingMonster'] == $monster["id"] ? 'selected' : '' ?>><?php echo $monster["name"]; ?></option>
 				<?php
 					}
 				?>
@@ -165,7 +125,7 @@ function drawForm() {
 	</div>
 <?php
 	foreach ($FlagSettings as $name => $settings) {
-		flagRadioButtons($name, $settings["label"], $settings["options"]);
+		flagRadioButtons($name, $modder->flags[$name], $settings["label"], $settings["options"]);
 	}
 ?>
 	<div class="row">
