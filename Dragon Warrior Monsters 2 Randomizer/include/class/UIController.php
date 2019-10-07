@@ -236,7 +236,7 @@ class UIController {
 		</div>
 <?php
 		foreach ($this->flagSettings as $name => $settings) {
-			flagRadioButtons($name, $this->modder->flags[$name], $settings["label"], $settings["options"]);
+			$this->flagRadioButtons($name, $this->modder->flags[$name], $settings["label"], $settings["options"]);
 		}
 ?>
 		<div class="row">
