@@ -14,8 +14,8 @@ class Rom {
 			22,23,24,25,26, // Healing spells
 			30,31,32, // Vivify/Revive/Farewell
 			123,124, // LifeDance/Hustle
-			133, // TatsuCall (Tatsu can cast HealMore)
 			160,161, // LifeSong/LoveRain
+			// Tatsu has Healmore, but their skills are in the encounter table, so we don't need to exclude TatsuCall.
 		),
 	);
 
@@ -234,7 +234,8 @@ class Rom {
 	}
 
 	function isBossEncounter($i) {
-
+		// Don't treat Tatsu/Diago/Samsi/Bazoo/Bedragon encounters as bosses
+		if ($i >= 125 && $i <= 129) { return 0; }
 
 		// Treat all encounters that have a 0% recruitment rate as bosses. This includes arena fights.
 		if ($this->getEncounterByte($i, 8) == 7) { return 1; }

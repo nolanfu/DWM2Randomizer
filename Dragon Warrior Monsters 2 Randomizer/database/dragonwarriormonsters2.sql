@@ -64,6 +64,7 @@ INSERT INTO `dragonwarriormonsters2` (`id`, `name`) VALUES
 (24, 'GoldSlime'),
 (25, 'GranSlime'),
 (26, 'WonderEgg'),
+(27, 'Butch'),
 (36, 'DragonKid'),
 (37, 'Tortragon'),
 (38, 'Pteranod'),
@@ -349,7 +350,15 @@ INSERT INTO `dragonwarriormonsters2` (`id`, `name`) VALUES
 (369, 'Darkdrium'),
 (370, 'Orgodemir'),
 (371, 'Orgodemir2'),
-(372, 'Darck');
+(372, 'Darck'),
+(373, 'Tatsu'),
+(374, 'Diago'),
+(375, 'Samsi'),
+(376, 'Bazoo'),
+(377, 'BeDragon'),
+(380, 'Lamia'),
+(381, 'Dimensaur'),
+(382, 'Kagebou');
 
 --
 -- Indexes for dumped tables
