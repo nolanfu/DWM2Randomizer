@@ -29,6 +29,7 @@ class Rom {
 
 	function __construct() {
 		$this->configureMap();
+		$this->populateMetadata();
 	}
 
 	function configureMap() {
@@ -64,7 +65,6 @@ class Rom {
 		{
 			$filename = "";
 			if (Rom::$loadLocalRom) {
-				//This is code for processing a ROM that I already have on the server
 				$filename = Rom::$localRomDirectory . Rom::$localRomInputName;
 			} else {
 				$filename = $_FILES['InputFile']['tmp_name'];
@@ -73,9 +73,7 @@ class Rom {
 			$file = fopen($filename, "rb");
 			$this->data = fread($file,filesize($filename));
 			fclose($file);
-		}
-		catch (Exception $e)
-		{
+		} catch (Exception $e) {
 			return false;
 		}
 		return true;
@@ -85,21 +83,11 @@ class Rom {
 		return (strlen($this->data) > 0);
 	}
 
-	function save() {
-		// TODO: Move some of this out to a controller 
-		global $initial_seed;
-		
-		if (Rom::$saveLocalRom) {
-			$filename = Rom::$localRomDirectory . Rom::$localRomOutputName;
-			$file = fopen($filename, "w");
-			fwrite($file,$this->data);
-			fclose($file);
-		} else {
-			header('Content-Disposition: attachment; filename="DWM2_Rando_'.$initial_seed.'.gbc"');
-			header("Content-Size: ".strlen($this->data)*512);
-			echo $this->data;
-			die();
-		}
+	function localSave() {
+		$filename = Rom::$localRomDirectory . Rom::$localRomOutputName;
+		$file = fopen($filename, "w");
+		fwrite($file,$this->data);
+		fclose($file);
 	}
 
 	function populateMetadata(){
@@ -246,6 +234,8 @@ class Rom {
 	}
 
 	function isBossEncounter($i) {
+
+
 		// Treat all encounters that have a 0% recruitment rate as bosses. This includes arena fights.
 		if ($this->getEncounterByte($i, 8) == 7) { return 1; }
 

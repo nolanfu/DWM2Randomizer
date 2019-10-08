@@ -23,28 +23,6 @@ function RomDump($rom){
 	fclose($outfile);
 }
 
-function RomTextDump($rom){
-	/* Code to create a text dump of the input rom. */
-	
-	$files_to_create = 1;
-	
-	for($j = 0; $j < $files_to_create; $j++){
-		$outfilename = Rom::$localRomDirectory.'romtextdump'.$j.'.txt';
-		$outfile = fopen($outfilename, "w");
-		
-		$str = '';
-		for($i = strlen($rom->data)/$files_to_create*$j; $i < strlen($rom->data)/$files_to_create*($j+1); $i++){
-			$byte = $rom->data[$i];
-			$str .= byteToAscii($byte);
-			if($i % 100 == 99){
-				$str .= "\n";
-			}
-		}
-		fwrite($outfile,$str);
-		fclose($outfile);
-	}
-}
-
 function RomStructuredDataDump($rom) {
 	RomEncounterDump($rom);
 	RomMonsterDump($rom);

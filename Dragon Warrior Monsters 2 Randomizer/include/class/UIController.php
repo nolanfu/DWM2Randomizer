@@ -3,6 +3,7 @@
 class UIController {
 	public $error = false;
 	public $error_message = 'The following errors occurred while generating the new seed:';
+	public $delivered_file = false;
 
 	public $flagSettings = array(
 		'Growth' => array(
@@ -139,19 +140,27 @@ class UIController {
 				return;
 			}
 
-			$rom->populateMetadata();
-			
 			//Some functions to dump the ROM in hexidecimal or text format
 			//RomStructuredDataDump($rom);
 			//RomDump($rom);
-			//RomTextDump($rom);
 			//die();
 			if($rom->isLoaded()){
 				$this->modder->apply($rom);
 				$this->recordAnalytics();
-				$rom->save();
+				if (Rom::$saveLocalRom) {
+					$rom->localSave();
+				} else {
+					$this->outputRom($rom, $this->modder->flags["Seed"]);
+				}
 			}
 		}
+	}
+
+	function outputRom($rom, $initSeed) {
+		header('Content-Disposition: attachment; filename="DWM2_Rando_'.$initSeed.'.gbc"');
+		header("Content-Size: ".strlen($rom->data)*512);
+		echo $rom->data;
+		$this->delivered_file = true;
 	}
 
 	function recordAnalytics() {
@@ -187,6 +196,7 @@ class UIController {
 	}
 
 	function draw() {
+		if ($this->delivered_file) return;
 ?>
 		<html>
 			<head>
